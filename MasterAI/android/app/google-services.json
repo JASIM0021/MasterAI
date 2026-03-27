@@ -1,0 +1,115 @@
+{
+  "project_info": {
+    "project_number": "926562855734",
+    "firebase_url": "https://masterai-28872-default-rtdb.firebaseio.com",
+    "project_id": "masterai-28872",
+    "storage_bucket": "masterai-28872.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:926562855734:android:0347757b3032afd6612197",
+        "android_client_info": {
+          "package_name": "com.education.mcqmaster"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "926562855734-ft3p5h7ff7so1oci3970jcrtnkvjluod.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.education.mcqmaster",
+            "certificate_hash": "b3872f3d41d20f9793ed72a9fc19c684376f831f"
+          }
+        },
+        {
+          "client_id": "926562855734-g0u1ahiem3kl4435vvdkt8rtkhgj0r6v.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.education.mcqmaster",
+            "certificate_hash": "97e48dc965bd390009b13fa3d18df6a5153b08f9"
+          }
+        },
+        {
+          "client_id": "926562855734-o2rf0om98fimard7e9lg1gtdplil2opa.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.education.mcqmaster",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "926562855734-rfabjjj7hb7g035eaq1u9jn305uj7lh6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC4ACzAZMlfiHTNNt8H8zs2G9f8rq9AvGw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "926562855734-rfabjjj7hb7g035eaq1u9jn305uj7lh6.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "926562855734-j8n4o73b2d4a2u4kc30b3i1csn5006tf.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.education.mcqmaster"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:926562855734:android:5329b595fec92c0d612197",
+        "android_client_info": {
+          "package_name": "com.scrachware.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "926562855734-hh34tngdio5pjf8qa3cmaqvuj8fi8hkd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.scrachware.app",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "926562855734-rfabjjj7hb7g035eaq1u9jn305uj7lh6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC4ACzAZMlfiHTNNt8H8zs2G9f8rq9AvGw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "926562855734-rfabjjj7hb7g035eaq1u9jn305uj7lh6.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "926562855734-j8n4o73b2d4a2u4kc30b3i1csn5006tf.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.education.mcqmaster"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

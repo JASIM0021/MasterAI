@@ -1,0 +1,268 @@
+{
+  "expo": {
+    "name": "Master AI",
+    "slug": "MasterAI",
+    "version": "5.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "update": {
+      "requestHeaders": {
+        "expo-channel-name": "masterai-prod"
+      }
+    },
+    "plugins": [
+
+
+      ["react-native-google-mobile-ads",
+      {
+        "androidAppId": "ca-app-pub-4304822949261068~8870208991",
+        "iosAppId": "ca-app-pub-4304822949261068~2277816262",
+        "userTrackingUsageDescription": "This identifier will be used to deliver personalized ads to you.",
+        "sk_ad_network_items": [
+          "cstr6suwn9.skadnetwork",
+          "4fzdc2evr5.skadnetwork",
+          "4pfyvq9l8r.skadnetwork",
+          "2fnua5tdw4.skadnetwork",
+          "ydx93a7ass.skadnetwork",
+          "5a6flpkh64.skadnetwork",
+          "p78axxw29g.skadnetwork",
+          "v72qych5uu.skadnetwork",
+          "ludvb6z3bs.skadnetwork",
+          "cp8zw746q7.skadnetwork",
+          "3sh42y64q3.skadnetwork",
+          "c6k4g5qg8m.skadnetwork",
+          "s39g8k73mm.skadnetwork",
+          "3qy4746246.skadnetwork",
+          "f38h382jlk.skadnetwork",
+          "hs6bdukanm.skadnetwork",
+          "v4nxqhlyqp.skadnetwork",
+          "wzmmz9fp6w.skadnetwork",
+          "yclnxrl5pm.skadnetwork",
+          "t38b2kh725.skadnetwork",
+          "7ug5zh24hu.skadnetwork",
+          "gta9lk7p23.skadnetwork",
+          "vutu7akeur.skadnetwork",
+          "y5ghdn5j9k.skadnetwork",
+          "n6fk4nfna4.skadnetwork",
+          "v9wttpbfk9.skadnetwork",
+          "n38lu8286q.skadnetwork",
+          "47vhws6wlr.skadnetwork",
+          "kbd757ywx3.skadnetwork",
+          "9t245vhmpl.skadnetwork",
+          "eh6m2bh4zr.skadnetwork",
+          "a2p9lx4jpn.skadnetwork",
+          "22mmun2rn5.skadnetwork",
+          "4468km3ulz.skadnetwork",
+          "2u9pt9hc89.skadnetwork",
+          "8s468mfl3y.skadnetwork",
+          "klf5c3l5u5.skadnetwork",
+          "ppxm28t8ap.skadnetwork",
+          "ecpz2srf59.skadnetwork",
+          "uw77j35x4d.skadnetwork",
+          "pwa73g5rt2.skadnetwork",
+          "mlmmfzh3r3.skadnetwork",
+          "578prtvx9j.skadnetwork",
+          "4dzt52r2t5.skadnetwork",
+          "e5fvkxwrpn.skadnetwork",
+          "8c4e2ghe7u.skadnetwork",
+          "zq492l623r.skadnetwork",
+          "3rd42ekr43.skadnetwork",
+          "3qcr597p9d.skadnetwork"
+        ]
+      }
+    
+    
+    ],
+
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos.",
+          "savePhotosPermission": "Allow $(PRODUCT_NAME) to save photos.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth",
+      "@react-native-firebase/crashlytics",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-4304822949261068~8870208991",
+          "iosAppId": "ca-app-pub-4304822949261068~2277816262",
+          "userTrackingUsageDescription": "This identifier will be used to deliver personalized ads to you.",
+          "sk_ad_network_items": [
+            "cstr6suwn9.skadnetwork",
+            "4fzdc2evr5.skadnetwork",
+            "4pfyvq9l8r.skadnetwork",
+            "2fnua5tdw4.skadnetwork",
+            "ydx93a7ass.skadnetwork",
+            "5a6flpkh64.skadnetwork",
+            "p78axxw29g.skadnetwork",
+            "v72qych5uu.skadnetwork",
+            "ludvb6z3bs.skadnetwork",
+            "cp8zw746q7.skadnetwork",
+            "3sh42y64q3.skadnetwork",
+            "c6k4g5qg8m.skadnetwork",
+            "s39g8k73mm.skadnetwork",
+            "3qy4746246.skadnetwork",
+            "f38h382jlk.skadnetwork",
+            "hs6bdukanm.skadnetwork",
+            "v4nxqhlyqp.skadnetwork",
+            "wzmmz9fp6w.skadnetwork",
+            "yclnxrl5pm.skadnetwork",
+            "t38b2kh725.skadnetwork",
+            "7ug5zh24hu.skadnetwork",
+            "gta9lk7p23.skadnetwork",
+            "vutu7akeur.skadnetwork",
+            "y5ghdn5j9k.skadnetwork",
+            "n6fk4nfna4.skadnetwork",
+            "v9wttpbfk9.skadnetwork",
+            "n38lu8286q.skadnetwork",
+            "47vhws6wlr.skadnetwork",
+            "kbd757ywx3.skadnetwork",
+            "9t245vhmpl.skadnetwork",
+            "eh6m2bh4zr.skadnetwork",
+            "a2p9lx4jpn.skadnetwork",
+            "22mmun2rn5.skadnetwork",
+            "4468km3ulz.skadnetwork",
+            "2u9pt9hc89.skadnetwork",
+            "8s468mfl3y.skadnetwork",
+            "klf5c3l5u5.skadnetwork",
+            "ppxm28t8ap.skadnetwork",
+            "ecpz2srf59.skadnetwork",
+            "uw77j35x4d.skadnetwork",
+            "pwa73g5rt2.skadnetwork",
+            "mlmmfzh3r3.skadnetwork",
+            "578prtvx9j.skadnetwork",
+            "4dzt52r2t5.skadnetwork",
+            "e5fvkxwrpn.skadnetwork",
+            "8c4e2ghe7u.skadnetwork",
+            "zq492l623r.skadnetwork",
+            "3rd42ekr43.skadnetwork",
+            "3qcr597p9d.skadnetwork"
+          ]
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with and find answer."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
+          "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          },
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "minSdkVersion": 24,
+            "buildToolsVersion": "35.0.0"
+          }
+        }
+      ],
+      [
+        "react-native-fbsdk-next",
+        {
+          "appID": "502883066057833",
+          "clientToken": "9353d05f4080484f39cd608a087fc9a0",
+          "displayName": "Master AI"
+        }
+      ],
+      [
+        "@react-native-google-signin/google-signin"
+       
+      ],
+      "react-native-ota-hot-update",
+      [
+        "react-native-share",
+        {}
+      ]
+    ],
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "supportsTablet": true,
+      "bundleIdentifier": "com.education.mcqmaster",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos.",
+        "NSPhotoLibraryAddUsageDescription": "Allow $(PRODUCT_NAME) to save photos.",
+        "SKAdNetworkItems": [
+          {
+            "SKAdNetworkIdentifier": "v9wttpbfk9.skadnetwork"
+          },
+          {
+            "SKAdNetworkIdentifier": "n38lu8286q.skadnetwork"
+          },
+          {
+            "SKAdNetworkIdentifier": "v9wttpbfk9.skadnetwork"
+          },
+          {
+            "SKAdNetworkIdentifier": "n38lu8286q.skadnetwork"
+          }
+        ]
+      }
+    },
+    "android": {
+      "versionCode": 35,
+      "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.education.mcqmaster",
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_MEDIA_LOCATION",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.INTERNET",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_MEDIA_LOCATION",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.INTERNET"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "scheme": [],
+    "extra": {
+      "eas": {
+        "projectId": "66ea4d06-8687-45c8-ba85-5c448e985e56"
+      }
+    },
+    "runtimeVersion": "5.0",
+    "updates": {
+      "url": "https://u.expo.dev/66ea4d06-8687-45c8-ba85-5c448e985e56"
+    }
+  }
+
+}

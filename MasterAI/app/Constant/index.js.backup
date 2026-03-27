@@ -1,0 +1,81 @@
+import AdTestScreen from '../screens/Ads/AdTestScreen';
+import AgeAnalizer from '../screens/Age/AgeAnalizer';
+import AgeDetailsScreen from '../screens/Age/AgeDetailsScreen';
+import AnalizeDetailView from '../screens/AnalyzeUserFeelings/AnalizeDetailView';
+import AnalyzeUserFeelings from '../screens/AnalyzeUserFeelings/AnalyzeUserFeelings';
+import AnimalAnalizer from '../screens/Animal/AnimalAnilizer';
+import QuestionAnswerList from '../screens/answerList/AnswerList';
+import LoginFB from '../screens/Auth/LoginFB/LoginFB';
+// Import protected versions of generation screens
+import CreateCaption from '../screens/caption/CaptionProtected';
+import CaptionDetailsList from '../screens/caption/CaptionDetailsList';
+import ContentBlocker from '../screens/ContentBlocker/ContentBlocker';
+import AIMathSolver from '../screens/education/AIMathSolver';
+import AIMathSolverDetails from '../screens/education/AIMathSolverDetails';
+import GuardianScreen from '../screens/Guardian/GuardianScreen';
+import AIImageEdits from '../screens/photo/AiImageEditsProtected';
+import AIImageGeneration from '../screens/photo/AIImageGenerationProtected';
+import AIPhotoEdit from '../screens/photo/AIPhotoEdit';
+import TraditionalPhotoEdit from '../screens/photo/TraditionalPhotoEdit';
+import PostCreation from '../screens/Post/PostCreationProtected';
+import PostDetailsList from '../screens/Post/PostDetailsList';
+import ToolList from '../screens/ToolList/ToolList';
+import TreeAnalize from '../screens/tree/TreeAnalize';
+import TreeDetailsScreen from '../screens/tree/TreeDetailsScreen';
+
+import UploadPhoto from '../screens/upload/Upload';
+import UploadVideo from '../screens/upload/UploadVidei';
+import WebViewTools from '../screens/WebViewTools/WebViewTools';
+import UserProfile from '../screens/Profile/UserProfile';
+import SocialAutomate from '../screens/SocialAutomate/SocialAutomate';
+import AIImageEditScreen from '../screens/AIImageEdit/AIImageEditScreen';
+import CreditPurchaseScreen from '../screens/CreditPurchase/CreditPurchaseScreen';
+import VideoGenerationScreen from '../screens/VideoGeneration/VideoGenerationScreen';
+import VideoCustomPromptScreen from '../screens/VideoGeneration/VideoCustomPromptScreen';
+import TemplateSelectionScreen from '../screens/VideoGeneration/TemplateSelectionScreen';
+import MyVideosScreen from '../screens/VideoGeneration/MyVideosScreen';
+import VideoFavoritesScreen from '../screens/VideoGeneration/VideoFavoritesScreen';
+import AuthScreen from '../screens/Auth/AuthScreen';
+
+// Import screen names from separate file to avoid circular dependencies
+export { SCREEN_NAME, appConstant } from './screenNames';
+
+export const SCREEN_COMPONENT = {
+  UploadPhoto: UploadPhoto,
+  QuestionAnswerList: QuestionAnswerList,
+  AdTestScreen: AdTestScreen,
+  UploadVideo: UploadVideo,
+  ToolList: ToolList,
+  CreateCaption: CreateCaption,
+  CaptionDetailsList: CaptionDetailsList,
+  PostCreation: PostCreation,
+  PostDetailsList: PostDetailsList,
+  AnalyzeUserFeelings: AnalyzeUserFeelings,
+  AnalyzeUserFeelingsDetailView: AnalizeDetailView,
+  TreeAnalize: TreeAnalize,
+  AIPhotoEdit: AIPhotoEdit,
+  TraditionalPhotoEdit: TraditionalPhotoEdit,
+  AgeAnalizer: AgeAnalizer,
+  AgeDetailsScreen: AgeDetailsScreen,
+  TreeDetailsScreen: TreeDetailsScreen,
+  AnimalAnalizer: AnimalAnalizer,
+  AIImageGeneration: AIImageGeneration,
+  AIMathSolver: AIMathSolver,
+  AIMathSolverDetails: AIMathSolverDetails,
+  LoginFB: LoginFB,
+  SocialAutomate: SocialAutomate,
+  VirtualClothTest: WebViewTools,
+  ContentBlocker: ContentBlocker,
+  GuardianScreen: GuardianScreen,
+  AIImageEdits: AIImageEdits,
+  UserProfile: UserProfile,
+  AIImageEditScreen: AIImageEditScreen,
+  CreditPurchase: CreditPurchaseScreen,
+  VideoGeneration: VideoGenerationScreen,
+  VideoCustomPrompt: VideoCustomPromptScreen,
+  TemplateSelection: TemplateSelectionScreen,
+  MyVideos: MyVideosScreen,
+  VideoFavorites: VideoFavoritesScreen,
+  AuthScreen: AuthScreen
+};
+

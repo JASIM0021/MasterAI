@@ -1,0 +1,10 @@
+<resources>
+  <string name="app_name">Master AI</string>
+  <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
+  <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
+  <string name="expo_system_ui_user_interface_style" translatable="false">light</string>
+  <string name="expo_runtime_version">5.0</string>
+  <string name="facebook_app_id">502883066057833</string>
+  <string name="facebook_client_token">9353d05f4080484f39cd608a087fc9a0</string>
+  <string name="fb_login_protocol_scheme">fb502883066057833</string>
+</resources>
