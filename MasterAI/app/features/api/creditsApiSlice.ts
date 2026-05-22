@@ -606,6 +606,54 @@ export const creditsApiSlice = globalApiSlice.injectEndpoints({
       providesTags: ['getandpost'],
     }),
 
+    // ==================== RAZORPAY ENDPOINTS ====================
+
+    // Create Razorpay order
+    createRazorpayOrder: builder.mutation<{
+      success: boolean;
+      orderId: string;
+      internalOrderId: string;
+      amount: number;
+      currency: string;
+      keyId: string;
+      packageName: string;
+    }, { packageId: string }>({
+      query: (data) => ({
+        url: 'razorpay/create-order',
+        method: 'POST',
+        body: data,
+      }),
+    }),
+
+    // Verify Razorpay payment and award credits
+    verifyRazorpayPayment: builder.mutation<{
+      success: boolean;
+      message: string;
+      creditsAwarded: number;
+      balance: number;
+    }, {
+      razorpayOrderId: string;
+      razorpayPaymentId: string;
+      razorpaySignature: string;
+      packageId: string;
+    }>({
+      query: (data) => ({
+        url: 'razorpay/verify',
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['getandpost'],
+    }),
+
+    // Get Razorpay packages (public)
+    fetchRazorpayPackages: builder.query<{ success: boolean; packages: CreditPackage[] }, void>({
+      query: () => ({
+        url: 'razorpay/packages',
+        method: 'GET',
+      }),
+      providesTags: ['getandpost'],
+    }),
+
   }),
 });
 
@@ -647,4 +695,10 @@ export const {
   useLazyGetUserAdStatsQuery,
   useGetAdSessionQuery,
   useLazyGetAdSessionQuery,
+
+  // Razorpay endpoints
+  useCreateRazorpayOrderMutation,
+  useVerifyRazorpayPaymentMutation,
+  useFetchRazorpayPackagesQuery,
+  useLazyFetchRazorpayPackagesQuery,
 } = creditsApiSlice;

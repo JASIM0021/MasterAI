@@ -141,6 +141,26 @@ const useRewardedAd = () => {
     refetchOnMountOrArgChange: true
   });
 
+  // Auto-sync RTK Query result → Redux as soon as the response arrives.
+  // Without this the button stays disabled because Redux eligibility is never populated
+  // until the user manually presses the button.
+  useEffect(() => {
+    if (eligibilityData && !isEligibilityLoading) {
+      const result = {
+        isEligible: eligibilityData.success && eligibilityData.isEligible,
+        reason: eligibilityData.message || eligibilityData.reason,
+        creditsPerAd: eligibilityData.creditsPerAd || 5,
+        dailyLimit: eligibilityData.dailyLimit,
+        watchedToday: eligibilityData.watchedToday,
+        canWatchNext: eligibilityData.canWatchNext,
+      };
+      dispatch(setEligibility(result));
+    } else if (eligibilityError && !isEligibilityLoading) {
+      // On network error still allow the button — let the actual watchAd call surface the error
+      dispatch(setEligibility({ isEligible: true, creditsPerAd: 5 }));
+    }
+  }, [eligibilityData, eligibilityError, isEligibilityLoading, dispatch]);
+
   // Check eligibility with proper API integration
   const checkEligibility = useCallback(async (forceRefresh = false) => {
     if (eligibility && !eligibilityNeedsRefresh && !forceRefresh) {
@@ -459,6 +479,7 @@ const useRewardedAd = () => {
     sessionId: currentSession?.sessionId,
     isEligible: eligibility?.isEligible || false,
     creditsPerAd: eligibility?.creditsPerAd || 5,
+    isEligibilityLoading,
   };
 };
 

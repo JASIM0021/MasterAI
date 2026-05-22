@@ -51,7 +51,9 @@
       "Bash(python3 -c ' *)",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d['expo'].get\\('plugins', []\\), indent=2\\)\\)\")",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('expo:', d.get\\('expo',{}\\).get\\('version','?'\\)\\); print\\('deps:', list\\(d.get\\('dependencies',{}\\).keys\\(\\)\\)[:10]\\)\")",
-      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('expo:', d.get\\('dependencies',{}\\).get\\('expo','?'\\)\\)\")"
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('expo:', d.get\\('dependencies',{}\\).get\\('expo','?'\\)\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); deps={**d.get\\('dependencies',{}\\), **d.get\\('devDependencies',{}\\)}; [print\\(k,v\\) for k,v in deps.items\\(\\) if any\\(x in k for x in ['notifee','push-notification','notification']\\)]\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\({k:v for k,v in {**d.get\\('dependencies',{}\\), **d.get\\('devDependencies',{}\\)}.items\\(\\) if 'razor' in k.lower\\(\\)}\\)\")"
     ],
     "deny": [],
     "ask": []

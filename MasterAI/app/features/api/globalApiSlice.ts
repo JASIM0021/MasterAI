@@ -6,7 +6,7 @@ import tokenManager from '../../utils/tokenManager';
 // let url = "https://android-manager.onrender.com";
 // let url=" https://liberal-salmon-enormously.ngrok-free.app"
 // let url=
-export let IP_ADDRESS = '10.30.121.146'
+export let IP_ADDRESS = '172.16.1.203'
  let url = {
   // http://192.168.114.113
 

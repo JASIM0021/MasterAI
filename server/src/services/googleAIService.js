@@ -1,10 +1,13 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { GoogleAIFileManager } = require('@google/generative-ai/server');
+const OpenAI = require('openai');
 const config = require('../config/config');
 const fs = require('fs');
 const path = require('path');
-const { uploadBase64Image } = require('../../services/cloudinaryService');
+const { uploadBase64Image, uploadImageFromUrl } = require('../../services/cloudinaryService');
 const Type = require('../Type');
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Path to the directory containing the images
 const uploadDir = path.join(__dirname, '../../uploads/images');
@@ -742,81 +745,131 @@ const generateQuoteContent = async (schedule, platforms, aiConfig) => {
 };
 
 // Generate image for automation post
-const generateImageForAutomation = async (textContent, aiConfig) => {
-  try {
-    // Create image generation prompt based on the text content
-    const imagePrompt = createImagePrompt(textContent.text, aiConfig);
-    console.log('🎨 Image generation prompt:', imagePrompt);
-
-    const generationConfig = {
+// ── Gemini image generation ────────────────────────────────────────────────
+const generateImageWithGemini = async (imagePrompt) => {
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-2.0-flash-exp-image-generation',
+    generationConfig: {
       temperature: 0.8,
       topP: 0.95,
       topK: 40,
       maxOutputTokens: 8192,
-    };
+      responseModalities: ['TEXT', 'IMAGE'],
+    },
+  });
 
-    // Use Gemini's image generation model
-    let model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash-image',
-      generationConfig: generationConfig,
-    });
+  const result = await model.generateContent([{ text: imagePrompt }]);
 
-    const result = await model.generateContent([
-      { text: imagePrompt }
-    ]);
-
-    console.log('✅ Image generated successfully for automation');
-
-    // Extract base64 image data directly from the response
-    let base64ImageData = null;
-
-    // Check if response has parts with inline data (image)
-    if (result.response.candidates && result.response.candidates[0]) {
-      const candidate = result.response.candidates[0];
-      if (candidate.content && candidate.content.parts) {
-        for (const part of candidate.content.parts) {
-          if (part.inlineData && part.inlineData.data) {
-            base64ImageData = part.inlineData.data;
-            break;
-          }
-        }
+  let base64ImageData = null;
+  if (result.response.candidates?.[0]?.content?.parts) {
+    for (const part of result.response.candidates[0].content.parts) {
+      if (part.inlineData?.data) {
+        base64ImageData = part.inlineData.data;
+        break;
       }
     }
+  }
 
-    if (!base64ImageData) {
-      console.log('Response structure:', JSON.stringify(result.response, null, 2));
-      throw new Error('No image data found in Google AI response');
-    }
+  if (!base64ImageData) {
+    throw new Error('No image data in Gemini response');
+  }
 
-    console.log('☁️ Uploading generated image to Cloudinary...');
+  const cloudinaryResult = await uploadBase64Image(base64ImageData, {
+    folder: 'automation-generated-images',
+    unique_filename: true,
+    transformation: [
+      { width: 1080, height: 1080, crop: 'fill' },
+      { quality: 'auto' },
+      { fetch_format: 'auto' },
+    ],
+  });
 
-    // Upload the generated image to Cloudinary
-    const cloudinaryResult = await uploadBase64Image(base64ImageData, {
-      folder: 'automation-generated-images',
-      use_filename: false,
-      unique_filename: true,
-      transformation: [
-        { width: 1080, height: 1080, crop: 'fill' }, // Instagram square format
-        { quality: 'auto' },
-        { fetch_format: 'auto' }
-      ]
-    });
+  return { ...cloudinaryResult, provider: 'gemini' };
+};
 
-    console.log('✅ Image uploaded to Cloudinary successfully');
+// ── OpenAI DALL-E fallback ─────────────────────────────────────────────────
+const generateImageWithDallE = async (imagePrompt) => {
+  console.log('🤖 Falling back to OpenAI DALL-E 3 for image generation...');
 
+  const response = await openai.images.generate({
+    model: 'dall-e-3',
+    prompt: imagePrompt,
+    n: 1,
+    size: '1024x1024',
+    quality: 'standard',
+    response_format: 'url',
+  });
+
+  const dalleUrl = response.data[0]?.url;
+  if (!dalleUrl) throw new Error('No URL returned from DALL-E');
+
+  console.log('☁️ Uploading DALL-E image to Cloudinary...');
+  const cloudinaryResult = await uploadImageFromUrl(dalleUrl, {
+    folder: 'automation-generated-images',
+    unique_filename: true,
+    transformation: [
+      { width: 1080, height: 1080, crop: 'fill' },
+      { quality: 'auto' },
+      { fetch_format: 'auto' },
+    ],
+  });
+
+  return { ...cloudinaryResult, provider: 'dalle3' };
+};
+
+// ── Main image generation with fallback chain ──────────────────────────────
+const generateImageForAutomation = async (textContent, aiConfig) => {
+  const imagePrompt = createImagePrompt(textContent.text, aiConfig);
+  console.log('🎨 Image generation prompt:', imagePrompt);
+
+  const cloudinaryUploadOpts = {
+    folder: 'automation-generated-images',
+    unique_filename: true,
+  };
+
+  // 1️⃣ Try Gemini
+  try {
+    const result = await generateImageWithGemini(imagePrompt);
+    console.log('✅ Image generated via Gemini');
     return {
-      url: cloudinaryResult.url,
-      public_id: cloudinaryResult.public_id,
-      width: cloudinaryResult.width,
-      height: cloudinaryResult.height,
-      format: cloudinaryResult.format,
+      url: result.url,
+      public_id: result.public_id,
+      width: result.width,
+      height: result.height,
+      format: result.format,
       prompt: imagePrompt,
       generatedAt: new Date(),
-      model: 'gemini-2.5-flash-image'
+      model: result.provider,
     };
-  } catch (error) {
-    console.error('❌ Image generation or upload failed for automation:', error);
-    throw new Error(`Image generation/upload failed: ${error.message}`);
+  } catch (geminiErr) {
+    const isQuota = geminiErr.status === 429 ||
+      (geminiErr.message || '').includes('429') ||
+      (geminiErr.message || '').toLowerCase().includes('quota');
+
+    if (isQuota) {
+      console.warn('⚠️ Gemini quota exceeded, trying DALL-E 3 fallback...');
+    } else {
+      console.warn('⚠️ Gemini image generation failed, trying DALL-E 3 fallback:', geminiErr.message);
+    }
+  }
+
+  // 2️⃣ Try DALL-E 3
+  try {
+    const result = await generateImageWithDallE(imagePrompt);
+    console.log('✅ Image generated via DALL-E 3');
+    return {
+      url: result.url,
+      public_id: result.public_id,
+      width: result.width,
+      height: result.height,
+      format: result.format,
+      prompt: imagePrompt,
+      generatedAt: new Date(),
+      model: result.provider,
+    };
+  } catch (dalleErr) {
+    console.error('❌ DALL-E 3 also failed:', dalleErr.message);
+    throw new Error(`All image providers failed. Last error: ${dalleErr.message}`);
   }
 };
 

@@ -24,10 +24,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
-  useFetchCreditPackagesQuery,
-  useInitiatePaymentMutation,
+  useFetchRazorpayPackagesQuery,
+  useCreateRazorpayOrderMutation,
+  useVerifyRazorpayPaymentMutation,
   useGetUnifiedCreditBalanceQuery,
-  useMigrateToGlobalCreditsMutation
 } from '../../features/api/creditsApiSlice';
 import { selectCurrentUser, selectIsAuthenticated } from '../../features/auth/authSlice';
 import CreditPackageCardModern from './components/CreditPackageCardModern';
@@ -53,9 +53,7 @@ const CreditPurchaseScreen = () => {
     isLoading: packagesLoading,
     error: packagesError,
     refetch: refetchPackages
-  } = useFetchCreditPackagesQuery(undefined, {
-    skip: !isAuthenticated
-  });
+  } = useFetchRazorpayPackagesQuery();
 
   const {
     data: creditBalanceData,
@@ -65,13 +63,8 @@ const CreditPurchaseScreen = () => {
     skip: !isAuthenticated
   });
 
-  const [initiatePayment, {
-    isLoading: initiatingPayment
-  }] = useInitiatePaymentMutation();
-
-  const [migrateToGlobal, {
-    isLoading: migrating
-  }] = useMigrateToGlobalCreditsMutation();
+  const [createOrder, { isLoading: creatingOrder }] = useCreateRazorpayOrderMutation();
+  const [verifyPayment, { isLoading: verifying }] = useVerifyRazorpayPaymentMutation();
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -99,84 +92,67 @@ const CreditPurchaseScreen = () => {
 
   const handlePurchase = async () => {
     if (!selectedPackage) {
-      Alert.alert('Error', 'Please select a credit package first');
+      Alert.alert('Select a Package', 'Please select a credit package to continue.');
       return;
     }
 
-    if (!currentUser?.email || !currentUser?.name) {
-      Alert.alert('Error', 'User profile information is incomplete');
+    if (!isAuthenticated) {
+      Alert.alert('Sign In Required', 'Please sign in to purchase credits.');
       return;
     }
 
     try {
-      const customerDetails = {
-        firstName: currentUser.name.split(' ')[0] || currentUser.name,
-        email: currentUser.email,
-        phone: currentUser.phone || ''
-      };
+      const response = await createOrder({ packageId: selectedPackage._id || selectedPackage.id }).unwrap();
+      if (response.success) {
+        setPaymentData({
+          orderId: response.orderId,
+          amount: response.amount,        // in paise
+          currency: response.currency,
+          keyId: response.keyId,
+          packageName: response.packageName,
+          userName: currentUser?.name || '',
+          userEmail: currentUser?.email || '',
+          packageId: selectedPackage._id || selectedPackage.id,
+        });
+        setShowPaymentWebView(true);
+      }
+    } catch (error) {
+      console.error('Create order error:', error);
+      Alert.alert('Error', error?.data?.message || 'Failed to create payment order. Please try again.');
+    }
+  };
 
-      const response = await initiatePayment({
-        packageId: selectedPackage.id,
-        customerDetails
+  const handlePaymentSuccess = async (razorpayOrderId, razorpayPaymentId, razorpaySignature) => {
+    setShowPaymentWebView(false);
+    try {
+      const result = await verifyPayment({
+        razorpayOrderId,
+        razorpayPaymentId,
+        razorpaySignature,
+        packageId: paymentData.packageId,
       }).unwrap();
 
-      if (response.success) {
-        setPaymentData(response.paymentData);
-        setShowPaymentWebView(true);
-      } else {
-        Alert.alert('Payment Error', 'Failed to initiate payment. Please try again.');
-      }
-    } catch (error) {
-      console.error('Payment initiation error:', error);
-      Alert.alert(
-        'Payment Error',
-        error.data?.message || 'Failed to initiate payment. Please try again.'
-      );
-    }
-  };
+      setPaymentData(null);
+      setSelectedPackage(null);
 
-  const handleMigrateToGlobal = async () => {
-    try {
-      const response = await migrateToGlobal().unwrap();
-      if (response.success) {
+      if (result.success) {
         Alert.alert(
-          'Migration Successful',
-          'Your account has been upgraded to the global credit system!',
-          [{ text: 'OK', onPress: () => refetchBalance() }]
+          '🎉 Payment Successful!',
+          `${result.creditsAwarded} credits added!\nNew balance: ${result.balance} credits.`,
+          [{ text: 'Great!', onPress: () => { refetchBalance(); navigation.goBack(); } }]
         );
+      } else {
+        Alert.alert('Verification Failed', result.message || 'Could not verify payment.');
       }
-    } catch (error) {
-      console.error('Migration error:', error);
-      Alert.alert('Migration Error', 'Failed to migrate to global credits');
+    } catch (err) {
+      console.error('Verify error:', err);
+      Alert.alert('Verification Error', err?.data?.message || 'Payment made but verification failed. Contact support.');
     }
   };
 
-  const handlePaymentComplete = (success, data) => {
+  const handlePaymentFailure = (message) => {
     setShowPaymentWebView(false);
-    setPaymentData(null);
-    setSelectedPackage(null);
-
-    if (success) {
-      Alert.alert(
-        'Payment Successful!',
-        `Your credits have been added to your account.`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              refetchBalance();
-              navigation.goBack();
-            }
-          }
-        ]
-      );
-    } else {
-      Alert.alert(
-        'Payment Failed',
-        data?.message || 'Payment was not completed successfully.',
-        [{ text: 'OK' }]
-      );
-    }
+    Alert.alert('Payment Failed', message || 'Payment was not completed.', [{ text: 'Try Again' }]);
   };
 
   const handleAdCompleted = (result) => {
@@ -252,9 +228,9 @@ const CreditPurchaseScreen = () => {
               >
                 <Button
                   mode="text"
-                  onPress={handleMigrateToGlobal}
-                  loading={migrating}
-                  disabled={migrating}
+                  onPress={handlePurchase}
+                  loading={creatingOrder}
+                  disabled={creatingOrder}
                   compact
                   labelStyle={styles.upgradeButtonText}
                 >
@@ -322,9 +298,9 @@ const CreditPurchaseScreen = () => {
               >
                 <Button
                   mode="text"
-                  onPress={handleMigrateToGlobal}
-                  loading={migrating}
-                  disabled={migrating}
+                  onPress={handlePurchase}
+                  loading={creatingOrder}
+                  disabled={creatingOrder}
                   labelStyle={styles.migrateButtonText}
                 >
                   Upgrade to Global Credits
@@ -392,8 +368,9 @@ const CreditPurchaseScreen = () => {
   if (showPaymentWebView && paymentData) {
     return (
       <PaymentWebView
-        paymentData={paymentData}
-        onComplete={handlePaymentComplete}
+        orderData={paymentData}
+        onSuccess={handlePaymentSuccess}
+        onFailure={handlePaymentFailure}
         onCancel={() => {
           setShowPaymentWebView(false);
           setPaymentData(null);
@@ -577,13 +554,13 @@ const CreditPurchaseScreen = () => {
                 <Button
                   mode="text"
                   onPress={handlePurchase}
-                  loading={initiatingPayment}
-                  disabled={initiatingPayment}
+                  loading={creatingOrder}
+                  disabled={creatingOrder}
                   labelStyle={styles.purchaseButtonText}
-                  icon={initiatingPayment ? undefined : "credit-card"}
+                  icon={creatingOrder ? undefined : "credit-card"}
                   contentStyle={styles.purchaseButtonContent}
                 >
-                  {initiatingPayment ? 'Processing Payment...' : `Pay ₹${selectedPackage.price} Now`}
+                  {creatingOrder ? 'Creating Order...' : `Pay ₹${selectedPackage.price} Now`}
                 </Button>
               </LinearGradient>
             </View>

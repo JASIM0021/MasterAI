@@ -1,6 +1,11 @@
 const admin = require('firebase-admin');
 const User = require('../models/User');
 var serviceAccount = require("../firebase.json");
+
+// Firebase FCM rejects imageUrl: null — only include it when it's a real URL
+const validImageUrl = (url) =>
+  url && typeof url === 'string' && url.startsWith('http') ? url : undefined;
+
 class PushNotificationService {
   constructor() {
     this.isInitialized = false;
@@ -57,70 +62,37 @@ class PushNotificationService {
       }
 
       const postPreview = this.truncateText(post.content.text, 100);
+      const imageUrl = validImageUrl(post.media?.[0]?.url);
 
+      // Data-only message — no top-level "notification" key.
+      // The app's background handler builds the local notification with action buttons,
+      // because FCM system-tray notifications cannot carry action buttons on Android.
       const message = {
-        notification: {
-          title: 'Your post is ready to review',
-          body: postPreview,
-          imageUrl: post.media?.[0]?.url || null
-        },
         data: {
           type: 'post_approval',
           postId: post._id.toString(),
           userId: user._id.toString(),
           approvalToken: post.approval?.approvalToken || '',
-          screen: 'PostApproval',
-          action: 'review_post',
+          title: 'Your post is ready to review',
+          body: postPreview,
+          imageUrl: imageUrl || '',
           deepLink: `masterai://approval/${post._id.toString()}`,
-          webLink: `${process.env.FRONTEND_URL}/approval/${post.approval?.approvalToken}`
         },
         android: {
-          notification: {
-            icon: 'ic_notification',
-            color: '#667eea',
-            channelId: 'post_approval',
-            priority: 'high',
-            defaultSound: true
-          },
-          data: {
-            click_action: 'FLUTTER_NOTIFICATION_CLICK',
-            action_1: 'approve_and_share',
-            action_1_title: 'Approve and Share',
-            action_2: 'dismiss',
-            action_2_title: 'Cancel'
-          }
+          priority: 'high',
+          ttl: 86400 * 1000, // 24 hours in ms
         },
         apns: {
+          headers: { 'apns-priority': '10' },
           payload: {
             aps: {
+              'content-available': 1,
               sound: 'default',
               badge: 1,
               category: 'POST_APPROVAL',
-              'thread-id': 'post_approval'
-            }
-          }
-        },
-        webpush: {
-          notification: {
-            icon: '/icons/notification-icon.png',
-            badge: '/icons/badge-icon.png',
-            actions: [
-              {
-                action: 'approve_and_share',
-                title: 'Approve and Share',
-                icon: '/icons/approve-icon.png'
-              },
-              {
-                action: 'dismiss',
-                title: 'Cancel',
-                icon: '/icons/cancel-icon.png'
-              }
-            ]
+            },
           },
-          fcmOptions: {
-            link: `${process.env.FRONTEND_URL}/approval/${post.approval?.approvalToken}`
-          }
-        }
+        },
       };
 
       const results = [];
@@ -196,7 +168,7 @@ class PushNotificationService {
           body: isApproved
             ? `Your post is ready to publish: ${postPreview}`
             : `Post rejected: ${postPreview}${reason ? ` - ${reason}` : ''}`,
-          imageUrl: post.media?.[0]?.url || null
+          ...(validImageUrl(post.media?.[0]?.url) && { imageUrl: validImageUrl(post.media?.[0]?.url) }),
         },
         data: {
           type: 'post_status',
@@ -774,7 +746,7 @@ class PushNotificationService {
         notification: {
           title: '✅ Video Generation Complete!',
           body: `"${promptPreview}" - Tap to view your video`,
-          imageUrl: video.thumbnail?.url || null
+          ...(validImageUrl(video.thumbnail?.url) && { imageUrl: validImageUrl(video.thumbnail?.url) }),
         },
         data: {
           type: 'video_generation_completed',

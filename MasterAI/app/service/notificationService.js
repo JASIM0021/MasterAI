@@ -2,9 +2,48 @@
 import messaging from '@react-native-firebase/messaging';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform, PermissionsAndroid } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import { API_URL } from '../features/api/globalApiSlice';
 import apiconstant from '../Constant/apiconstant';
 import tokenManager from '../utils/tokenManager';
+
+// ── Notification categories (must be registered before any notification fires) ──
+export const registerNotificationCategories = async () => {
+  await Notifications.setNotificationCategoryAsync('post_approval', [
+    {
+      identifier: 'approve_and_share',
+      buttonTitle: 'Approve & Share',
+      options: { opensAppToForeground: true },
+    },
+    {
+      identifier: 'dismiss',
+      buttonTitle: 'Dismiss',
+      options: { opensAppToForeground: false, isDestructive: true },
+    },
+  ]);
+};
+
+// ── Show a local notification from FCM data payload ──────────────────────────
+export const showLocalNotificationFromData = async (data) => {
+  try {
+    const { type, title, body, postId, imageUrl, deepLink } = data || {};
+    if (!type || !title) return;
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title,
+        body,
+        data: { type, postId, deepLink, imageUrl },
+        categoryIdentifier: type === 'post_approval' ? 'post_approval' : undefined,
+        sound: 'default',
+        ...(imageUrl ? { attachments: [{ url: imageUrl }] } : {}),
+      },
+      trigger: null, // fire immediately
+    });
+  } catch (err) {
+    console.warn('[showLocalNotification] error:', err.message);
+  }
+};
 
 export const RNPushService  = {
   // Request permission for notifications
@@ -130,27 +169,26 @@ export const RNPushService  = {
     });
   }
 ,
-  // Handle foreground messages
-  onMessage:async() =>{
+  // Handle foreground messages — show local notification with action buttons
+  onMessage: () => {
     return messaging().onMessage(async remoteMessage => {
       console.log('Foreground message received:', remoteMessage);
-
-      // Show local notification when app is in foreground
-      this.showLocalNotification(remoteMessage);
+      if (remoteMessage?.data) {
+        await showLocalNotificationFromData(remoteMessage.data);
+      }
     });
-  }
-,
+  },
 
 
-  // Handle background messages
-  setBackgroundMessageHandler:() =>{
+  // Handle background messages (data-only FCM → local notification with action buttons)
+  setBackgroundMessageHandler: () => {
     messaging().setBackgroundMessageHandler(async remoteMessage => {
       console.log('Background message:', remoteMessage);
-      // Handle background message
-      // Update app badge, save to database, etc.
+      if (remoteMessage?.data) {
+        await showLocalNotificationFromData(remoteMessage.data);
+      }
     });
-  }
-,
+  },
   // Handle notification open events
   handleNotificationOpen:async ()=> {
     // When app is opened from a notification (killed state)
@@ -596,4 +634,8 @@ export const RNPushService  = {
     console.log('Unsubscribing from push notification listeners');
   }
 }
+
+// Named-export aliases expected by bottomTabs.jsx
+export const getFCMToken = () => RNPushService.getToken();
+export const registerAppWithFCM = () => RNPushService.initializeAsync();
 

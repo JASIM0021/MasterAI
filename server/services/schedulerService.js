@@ -863,9 +863,8 @@ class SchedulerService {
         }
       } else if (cronJobRecord) {
         console.log(`⚠️ CronJob record found but markExecution method not available`);
-      } else {
-        console.log(`⚠️ No cronJobRecord available to mark execution`);
       }
+      // No cronJobRecord is normal for manual test executions — skip silently
 
       console.log(`📊 Automation completed: ${result.postsCreated} created, ${result.successfulPosts} successful, ${result.failedPosts} failed`);
 

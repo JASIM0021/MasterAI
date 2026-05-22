@@ -29,8 +29,12 @@ const RewardedAdButton = ({
     isEligible,
     checkEligibility,
     creditsPerAd,
-    eligibility
+    eligibility,
+    isEligibilityLoading,
   } = useRewardedAd();
+
+  // True while the first eligibility check is still in-flight
+  const eligibilityPending = eligibility === null && isEligibilityLoading;
 
   const [isPressed, setIsPressed] = useState(false);
 
@@ -175,7 +179,7 @@ const RewardedAdButton = ({
   };
 
   const renderContent = () => {
-    if (isLoading) {
+    if (eligibilityPending || isLoading) {
       return (
         <View style={styles.contentContainer}>
           <ActivityIndicator
@@ -183,14 +187,8 @@ const RewardedAdButton = ({
             color={currentVariant.textColor}
             style={styles.loadingIcon}
           />
-          <Text style={[
-            styles.text,
-            {
-              fontSize: currentSize.fontSize,
-              color: currentVariant.textColor
-            }
-          ]}>
-            Loading Ad...
+          <Text style={[styles.text, { fontSize: currentSize.fontSize, color: currentVariant.textColor }]}>
+            {eligibilityPending ? 'Checking...' : 'Loading Ad...'}
           </Text>
         </View>
       );
@@ -232,13 +230,15 @@ const RewardedAdButton = ({
     );
   };
 
+  const isButtonDisabled = disabled || isLoading || eligibilityPending;
+
   const buttonStyle = [
     styles.button,
     {
       height: currentSize.height,
       paddingHorizontal: currentSize.paddingHorizontal,
       borderRadius: currentSize.borderRadius,
-      opacity: (disabled || !isEligible) ? 0.6 : (isPressed ? 0.8 : 1.0),
+      opacity: isButtonDisabled ? 0.7 : (isPressed ? 0.8 : 1.0),
       borderColor: currentVariant.borderColor,
       borderWidth: currentVariant.borderWidth || 0,
       shadowColor: currentVariant.shadowColor,
@@ -252,7 +252,7 @@ const RewardedAdButton = ({
       onPress={handlePress}
       onPressIn={() => setIsPressed(true)}
       onPressOut={() => setIsPressed(false)}
-      disabled={disabled || isLoading || !isEligible}
+      disabled={isButtonDisabled}
       activeOpacity={0.8}
     >
       <LinearGradient

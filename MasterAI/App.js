@@ -28,10 +28,21 @@ import BottomTabs from './app/screens/Tabs/bottomTabs.jsx';
 
 // Import authentication components
 import AuthInitializer from './app/Components/auth/AuthInitializer.jsx';
-import { RNPushService } from './app/service/notificationService.js';
+import { RNPushService, registerNotificationCategories } from './app/service/notificationService.js';
+import * as Notifications from 'expo-notifications';
+import { navigationRef } from './app/navigation/navigationRef.js';
 
 // Import app open ad service
 import { getAppOpenAdService } from './app/service/appOpenAdService.js';
+
+// Show notifications when app is foregrounded
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 // Import auth debug utility in development
 if (__DEV__) {
@@ -56,9 +67,36 @@ export default function App() {
   const [token, setToken] = useState('');
 
   useEffect(() => {
+    // Register notification categories (action buttons) before any notification fires
+    registerNotificationCategories();
     RNPushService.initialize();
-    return () => RNPushService.unsubscribe();
+
+    // Handle taps on notification action buttons
+    const responseSub = Notifications.addNotificationResponseReceivedListener(response => {
+      const { actionIdentifier, notification } = response;
+      const data = notification.request.content.data || {};
+      const { type, postId, deepLink } = data;
+
+      if (type === 'post_approval') {
+        if (actionIdentifier === 'approve_and_share') {
+          if (navigationRef?.current?.isReady()) {
+            navigationRef.current.navigate('ApprovePost', { postId, autoApprove: true });
+          }
+        } else if (actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
+          if (navigationRef?.current?.isReady()) {
+            navigationRef.current.navigate('ApprovePost', { postId });
+          }
+        }
+        // 'dismiss' — notification already dismissed, no navigation needed
+      }
+    });
+
+    return () => {
+      RNPushService.unsubscribe();
+      responseSub.remove();
+    };
   }, []);
+
   const colorScheme = useColorScheme();
   const theme = colorScheme === 'dark' ? darkTheme : lightTheme;
   return (
@@ -69,7 +107,7 @@ export default function App() {
         <SafeAreaProvider>
           <AuthInitializer>
             <SystemBars style={colorScheme === 'dark' ? 'light' : 'dark'} />
-            <NavigationContainer>
+            <NavigationContainer ref={navigationRef}>
               {/* <AuthNavigation />
               progress || syncMessage ? (
               <CodePushLoading progress={progress} subHeader={syncMessage} />

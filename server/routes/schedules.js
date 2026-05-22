@@ -638,7 +638,7 @@ router.post('/:scheduleId/test', verifyToken, async (req, res) => {
     }
 
     // Execute the schedule once
-    const result = await executeSchedule(schedule);
+    const result = await schedulerService.executeAutomationNow(schedule._id);
 
     res.json({
       success: true,
