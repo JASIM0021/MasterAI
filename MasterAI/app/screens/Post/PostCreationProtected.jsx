@@ -22,8 +22,7 @@ import useNavigationHelper from '../helper/NavigationHelper';
 import { SCREEN_NAME } from '../../Constant';
 import { usePostCaptionMutation } from '../../features/api/upload/uploadPhoto';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import BanneerAdd from '../Ads/BanneerAdd';
-import { BannerAdSize } from 'react-native-google-mobile-ads';
+import AdBanner from '../../Components/ads/AdBanner';
 import Loader from '../../Components/loader/Loader';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
@@ -360,6 +359,7 @@ const PostCreationProtected = ({ route }) => {
         style={styles.container}
       >
         <Header isBack={true} title={`Create ${platform} Post`} />
+        <AdBanner />
         <ScrollView style={styles.content}>
           {renderUserInfo()}
           {renderQuotaWarning()}
@@ -512,10 +512,7 @@ const PostCreationProtected = ({ route }) => {
             </Button>
           </Modal>
         </Portal>
-        <BanneerAdd.BannerTest
-          bannerAdSize={BannerAdSize.FULL_BANNER}
-          bottom={100}
-        />
+        <AdBanner />
         <Loader isAnalyzing={isLoading} />
       </LinearGradient>
     </SafeAreaView>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,9 @@ import {
   TextInput,
   Alert,
   Switch,
+  Modal,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,8 +22,128 @@ import { useFetchUserCreditsQuery } from '../../features/api/creditsApiSlice';
 import { selectIsAuthenticated } from '../../features/auth/authSlice';
 import { useSelector } from 'react-redux';
 
+const { width } = Dimensions.get('window');
+
+const CongratulationsModal = ({ visible, onDone }) => {
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const checkAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.sequence([
+        Animated.parallel([
+          Animated.spring(scaleAnim, { toValue: 1, tension: 60, friction: 7, useNativeDriver: true }),
+          Animated.timing(opacityAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+        ]),
+        Animated.spring(checkAnim, { toValue: 1, tension: 80, friction: 6, useNativeDriver: true }),
+      ]).start();
+    } else {
+      scaleAnim.setValue(0);
+      opacityAnim.setValue(0);
+      checkAnim.setValue(0);
+    }
+  }, [visible]);
+
+  const features = [
+    { icon: 'robot', text: 'AI will generate content automatically' },
+    { icon: 'bell-ring', text: 'Email & push notification when ready' },
+    { icon: 'share-variant', text: 'Review & share from the app' },
+  ];
+
+  return (
+    <Modal transparent visible={visible} animationType="none" statusBarTranslucent>
+      <Animated.View style={[congStyles.backdrop, { opacity: opacityAnim }]}>
+        <Animated.View style={[congStyles.card, { transform: [{ scale: scaleAnim }] }]}>
+          {/* Top gradient arc */}
+          <LinearGradient
+            colors={['#6c47ff', '#a78bfa']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={congStyles.topGradient}
+          >
+            {/* Decorative circles */}
+            <View style={[congStyles.circle, { top: -20, right: -20, width: 80, height: 80, opacity: 0.2 }]} />
+            <View style={[congStyles.circle, { top: 30, left: -30, width: 60, height: 60, opacity: 0.15 }]} />
+
+            {/* Animated check icon */}
+            <Animated.View style={[congStyles.checkCircle, { transform: [{ scale: checkAnim }] }]}>
+              <Icon name="check" size={38} color="#6c47ff" />
+            </Animated.View>
+          </LinearGradient>
+
+          {/* Body */}
+          <View style={congStyles.body}>
+            <Text style={congStyles.title}>🎉 Automation Created!</Text>
+            <Text style={congStyles.subtitle}>
+              Your automation is live and running. Here's what happens next:
+            </Text>
+
+            {features.map((f, i) => (
+              <View key={i} style={congStyles.featureRow}>
+                <View style={congStyles.featureIcon}>
+                  <Icon name={f.icon} size={18} color="#6c47ff" />
+                </View>
+                <Text style={congStyles.featureText}>{f.text}</Text>
+              </View>
+            ))}
+
+            <TouchableOpacity onPress={onDone} activeOpacity={0.85}>
+              <LinearGradient
+                colors={['#6c47ff', '#a78bfa']}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                style={congStyles.doneBtn}
+              >
+                <Icon name="rocket-launch" size={18} color="white" style={{ marginRight: 8 }} />
+                <Text style={congStyles.doneBtnText}>Let's Go!</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      </Animated.View>
+    </Modal>
+  );
+};
+
+const congStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center', alignItems: 'center', padding: 24,
+  },
+  card: {
+    width: '100%', maxWidth: 360, borderRadius: 24,
+    backgroundColor: '#fff', overflow: 'hidden',
+    elevation: 20, shadowColor: '#6c47ff', shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3, shadowRadius: 20,
+  },
+  topGradient: {
+    height: 140, justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
+  },
+  circle: { position: 'absolute', borderRadius: 999, backgroundColor: '#fff' },
+  checkCircle: {
+    width: 72, height: 72, borderRadius: 36, backgroundColor: '#fff',
+    justifyContent: 'center', alignItems: 'center',
+    elevation: 6, shadowColor: '#6c47ff', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2, shadowRadius: 8,
+  },
+  body: { padding: 24 },
+  title: { fontSize: 22, fontWeight: '800', color: '#1a1a2e', textAlign: 'center', marginBottom: 8 },
+  subtitle: { fontSize: 14, color: '#666', textAlign: 'center', lineHeight: 21, marginBottom: 20 },
+  featureRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+  featureIcon: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: '#f0eeff', justifyContent: 'center', alignItems: 'center', marginRight: 12,
+  },
+  featureText: { flex: 1, fontSize: 13, color: '#444', lineHeight: 19 },
+  doneBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    borderRadius: 14, paddingVertical: 14, marginTop: 8,
+  },
+  doneBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+});
+
 const CreateAutomation = () => {
   const navigation = useNavigation();
+  const [showSuccess, setShowSuccess] = useState(false);
 
   // Auth and credit validation
   const isAuthenticated = useSelector(selectIsAuthenticated);
@@ -71,6 +194,7 @@ const CreateAutomation = () => {
     { id: 'japanese', label: 'Japanese', flag: '🇯🇵' },
     { id: 'korean', label: 'Korean', flag: '🇰🇷' },
     { id: 'hindi', label: 'Hindi', flag: '🇮🇳' },
+    { id: 'bengali', label: 'Bengali', flag: '🇧🇩' },
     { id: 'arabic', label: 'Arabic', flag: '🇸🇦' },
   ];
 
@@ -238,11 +362,7 @@ const CreateAutomation = () => {
 
       const result = await createSchedule(scheduleData).unwrap();
 
-      Alert.alert(
-        'Success',
-        'Automation created successfully! You will receive notifications when new content is generated.',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
+      setShowSuccess(true);
     } catch (error) {
       console.error('Create schedule error:', error);
       Alert.alert('Error', 'Failed to create automation. Please try again.');
@@ -251,6 +371,11 @@ const CreateAutomation = () => {
 
   return (
     <View style={styles.container}>
+      <CongratulationsModal
+        visible={showSuccess}
+        onDone={() => { setShowSuccess(false); navigation.goBack(); }}
+      />
+
       {/* Header */}
       {/* <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>

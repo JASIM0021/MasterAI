@@ -25,7 +25,6 @@ import {
   useLazyFetchSchedulesQuery
 } from '../../features/api/schedulesApiSlice';
 
-
 // Import auth selectors
 import {
   selectIsAuthenticated,
@@ -77,7 +76,6 @@ const SocialAutomate = () => {
     { skip: !isAuthenticated || authLoading }
   );
 
-
   // Derived data from RTK Query responses
   const posts = postsData?.posts || [];
   const schedules = schedulesData?.schedules || [];
@@ -94,15 +92,11 @@ const SocialAutomate = () => {
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([
-        refetchPosts(),
-        refetchSchedules()
-      ]);
+      await Promise.all([refetchPosts(), refetchSchedules()]);
     } catch (error) {
       console.error('Failed to refresh data:', error);
     }
     setRefreshing(false);
-
     PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
   };
 
@@ -181,12 +175,12 @@ const SocialAutomate = () => {
         <View style={styles.infoCard}>
           <Icon name="information" size={24} color="#3498db" style={styles.infoIcon} />
           <View style={styles.infoContent}>
-            <Text style={styles.infoTitle}>How Social Automation Works</Text>
+            <Text style={styles.infoTitle}>How Automation Works</Text>
             <Text style={styles.infoText}>
               1. Create automation rules with topics and timing{'\n'}
-              2. AI generates posts and images automatically{'\n'}
-              3. Get notifications to approve content{'\n'}
-              4. Share approved posts directly to platforms
+              2. MasterAI generates content automatically{'\n'}
+              3. You get email + push notification when ready{'\n'}
+              4. Open the app, review, then share to your platforms
             </Text>
           </View>
         </View>
@@ -431,6 +425,7 @@ const SocialAutomate = () => {
         onClose={handleClosePreview}
         onApproved={handlePostApproved}
       />
+
     </View>
   );
 };
@@ -564,20 +559,86 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   noAccountsText: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 12,
+    fontSize: 14,
+    color: '#999',
+    marginTop: 4,
+    marginBottom: 4,
   },
   connectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#6200ee',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     borderRadius: 20,
   },
   connectButtonText: {
     color: '#ffffff',
     fontSize: 14,
     fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  connectedAccountsCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  connectedAccountsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  connectedAccountsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+  },
+  accountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  accountIconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  accountInfo: {
+    flex: 1,
+  },
+  accountName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#2c3e50',
+  },
+  accountUsername: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 2,
+  },
+  disconnectButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e74c3c',
+  },
+  disconnectText: {
+    fontSize: 12,
+    color: '#e74c3c',
+    fontWeight: '600',
   },
   statsGrid: {
     flexDirection: 'row',

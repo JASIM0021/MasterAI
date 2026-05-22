@@ -22,9 +22,11 @@ import UpdateBanner from '../update/AppUpdate';
 import FeatureModal from '../../Components/Model/FeatureModal';
 import LowCreditBanner from '../../Components/ads/LowCreditBanner';
 import { SafeScreen } from '../../Components/layout';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const ToolList = () => {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [scaleAnim] = useState(new Animated.Value(1));
   const [featureModel, setFeatureModel] = useState(false);
@@ -315,7 +317,7 @@ const ToolList = () => {
 
   return (
     <SafeScreen
-      edges={['bottom', 'left', 'right']}
+      edges={['left', 'right']}
       scroll={false}
     >
       <UpdateBanner />
@@ -340,7 +342,7 @@ const ToolList = () => {
               colors={['#667eea', '#764ba2', '#667eea']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={styles.headerGradientBackground}
+              style={[styles.headerGradientBackground, { paddingTop: insets.top }]}
             >
               {/* Floating geometric shapes */}
               <View style={styles.floatingShapes}>
@@ -376,7 +378,7 @@ const ToolList = () => {
                 />
               </View>
 
-              <Appbar.Header style={styles.appBar}>
+              <Appbar.Header style={styles.appBar} statusBarHeight={0}>
                 <Appbar.Content
                   title="🚀 MasterAI Tools"
                   titleStyle={styles.appBarTitle}
@@ -562,6 +564,7 @@ const styles = StyleSheet.create({
   appBar: {
     backgroundColor: 'transparent',
     elevation: 0,
+    height: 56,
   },
   appBarTitle: {
     color: '#ffffff',

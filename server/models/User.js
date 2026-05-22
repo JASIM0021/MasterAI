@@ -98,6 +98,11 @@ const userSchema = new mongoose.Schema({
     default: Date.now
   },
 
+  password: { type: String, default: null },
+  otp: { type: String, default: null },
+  otpExpiry: { type: Date, default: null },
+  otpType: { type: String, enum: ['email-verification', 'password-reset'], default: null },
+
   // Device tokens for push notifications
   deviceTokens: [{
     token: {

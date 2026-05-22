@@ -6,7 +6,7 @@ import tokenManager from '../../utils/tokenManager';
 // let url = "https://android-manager.onrender.com";
 // let url=" https://liberal-salmon-enormously.ngrok-free.app"
 // let url=
-export let IP_ADDRESS = '10.103.176.12'
+export let IP_ADDRESS = '10.30.121.146'
  let url = {
   // http://192.168.114.113
 
@@ -36,7 +36,7 @@ export let IP_ADDRESS = '10.103.176.12'
       return headers;
     },
   }),
-  tagTypes: ['erm', 'getandpost'],
+  tagTypes: ['erm', 'getandpost', 'SocialPlatforms', 'SharingUrls', 'ConnectedAccounts'],
   endpoints: builder => ({}),
 });
 

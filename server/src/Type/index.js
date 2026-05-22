@@ -1,0 +1,15 @@
+module.exports = {
+  CAPTION: 'CAPTION',
+  POST: 'POST',
+  FACEBOOK: 'FACEBOOK',
+  FEELING: 'FEELING',
+  MATHSOLVER: 'MATHSOLVER',
+  AGE: 'AGE',
+  TREE: 'TREE',
+  ANIMAL: 'ANIMAL',
+  QUATE: 'QUATE',
+  CUSTOM: 'CUSTOM',
+  CheckPrompt: 'CheckPrompt',
+  STORY: 'STORY',
+  getCoding: 'getCoding',
+};

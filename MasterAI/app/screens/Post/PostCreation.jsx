@@ -22,8 +22,8 @@ import { SCREEN_NAME } from '../../Constant';
 import { usePostCaptionMutation } from '../../features/api/upload/uploadPhoto';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import ImageUploader from '../../Components/Image/ImageUploader';
-import BanneerAdd from '../Ads/BanneerAdd';
-import { BannerAdSize } from 'react-native-google-mobile-ads';
+import AdBanner from '../../Components/ads/AdBanner';
+import useInterstitialAd from '../../hooks/useInterstitialAd';
 import Loader from '../../Components/loader/Loader';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
@@ -41,6 +41,7 @@ const PostCreation = ({ route }) => {
 
   const [generatePost, { isLoading, isSuccess, isError, data }] =
     usePostCaptionMutation();
+  const { showAd } = useInterstitialAd();
 
   const styles = StyleSheet.create({
     container: {
@@ -142,6 +143,7 @@ const PostCreation = ({ route }) => {
 
       try {
         await generatePost(formData).unwrap();
+        await showAd();
       } catch (error) {
         console.error('Post generation failed:', error);
       }
@@ -345,10 +347,7 @@ const PostCreation = ({ route }) => {
             </Button>
           </Modal>
         </Portal>
-        <BanneerAdd.BannerTest
-          bannerAdSize={BannerAdSize.FULL_BANNER}
-          bottom={100}
-        />
+        <AdBanner />
         <Loader isAnalyzing={isLoading} />
       </LinearGradient>
     </SafeAreaView>

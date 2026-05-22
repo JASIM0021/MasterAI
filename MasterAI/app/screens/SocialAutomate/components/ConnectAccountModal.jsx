@@ -52,7 +52,7 @@ const ConnectAccountModal = ({ visible, onClose, onAccountConnected }) => {
   ];
 
   const handleConnectPlatform = async (platform) => {
-    if (!user || !token) {
+    if (!token) {
       Alert.alert('Error', 'Please login first to connect social accounts');
       return;
     }
@@ -61,59 +61,53 @@ const ConnectAccountModal = ({ visible, onClose, onAccountConnected }) => {
       setIsConnecting(true);
       setConnectingPlatform(platform.id);
 
-      // Construct OAuth URL with user ID
-      const authUrl = `${API_URL.replace('/api', '')}api/social/auth/${platform.id}?userId=${user.id}`;
+      // Pass JWT token so server can identify the user without exposing userId
+      const authUrl = `${API_URL.replace('/api/', '')}api/social/auth/${platform.id}?token=${encodeURIComponent(token)}`;
 
       console.log('authUrl', authUrl);
-      // Check if the URL can be opened
+
       const supported = await Linking.canOpenURL(authUrl);
 
       if (supported) {
         // Open the OAuth URL in the browser
         await Linking.openURL(authUrl);
 
-        // Set up a listener for when the user returns to the app
-        const handleUrlChange = (url) => {
-          if (url && (url.includes('success=') || url.includes('error='))) {
-            // Remove the listener
-            Linking.removeAllListeners('url');
+        // Listen for the deep link callback: masterai://social-connect?success=true&platform=...
+        const subscription = Linking.addEventListener('url', ({ url }) => {
+          if (!url || !url.startsWith('masterai://social-connect')) return;
 
-            if (url.includes('success=')) {
-              Alert.alert(
-                'Success',
-                `${platform.name} account connected successfully!`,
-                [
-                  {
-                    text: 'OK',
-                    onPress: () => {
-                      onAccountConnected();
-                      onClose();
-                    }
-                  }
-                ]
-              );
-            } else {
-              const errorMatch = url.match(/error=([^&]+)/);
-              const errorMessage = errorMatch
-                ? decodeURIComponent(errorMatch[1]).replace(/_/g, ' ')
-                : 'Failed to connect account';
+          subscription.remove();
+          clearTimeout(timeoutId);
 
-              Alert.alert('Connection Failed', errorMessage);
-            }
+          const paramString = url.split('?')[1] || '';
+          const params = {};
+          paramString.split('&').forEach(pair => {
+            const [k, v] = pair.split('=');
+            if (k) params[decodeURIComponent(k)] = decodeURIComponent(v || '');
+          });
 
-            setIsConnecting(false);
-            setConnectingPlatform(null);
-          }
-        };
-
-        // Add URL listener
-        Linking.addEventListener('url', handleUrlChange);
-
-        // Set a timeout to stop the loading state after 60 seconds
-        setTimeout(() => {
           setIsConnecting(false);
           setConnectingPlatform(null);
-          Linking.removeAllListeners('url');
+
+          if (params.success === 'true') {
+            Alert.alert(
+              'Success',
+              `${platform.name} account connected successfully!`,
+              [{ text: 'OK', onPress: () => { onAccountConnected(); onClose(); } }]
+            );
+          } else {
+            const errorMessage = params.error
+              ? params.error.replace(/_/g, ' ')
+              : 'Failed to connect account';
+            Alert.alert('Connection Failed', errorMessage);
+          }
+        });
+
+        // Timeout after 60 seconds
+        const timeoutId = setTimeout(() => {
+          subscription.remove();
+          setIsConnecting(false);
+          setConnectingPlatform(null);
         }, 60000);
 
       } else {
@@ -130,11 +124,8 @@ const ConnectAccountModal = ({ visible, onClose, onAccountConnected }) => {
   };
 
   const handleCancel = () => {
-    if (isConnecting) {
-      setIsConnecting(false);
-      setConnectingPlatform(null);
-      Linking.removeAllListeners('url');
-    }
+    setIsConnecting(false);
+    setConnectingPlatform(null);
     onClose();
   };
 

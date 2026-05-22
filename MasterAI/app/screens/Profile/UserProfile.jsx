@@ -153,38 +153,45 @@ const UserProfile = () => {
           />
 
           {/* Earn Free Credits Section */}
-          <Card style={styles.earnCreditsCard}>
-            <Card.Content>
-              <View style={styles.earnCreditsHeader}>
-                <MaterialCommunityIcons
-                  name="gift"
-                  size={24}
-                  color="#6366F1"
-                />
-                <Text style={styles.earnCreditsTitle}>Earn Free Credits</Text>
-              </View>
-              <Text style={styles.earnCreditsDescription}>
-                Watch short video ads to earn credits instantly. No waiting, no limits!
-              </Text>
-              <View style={styles.rewardButtonContainer}>
-                <RewardedAdButton
-                  source="profile"
-                  size="medium"
-                  variant="primary"
-                  onAdCompleted={handleAdCompleted}
-                  style={styles.rewardButton}
-                />
-                <View style={styles.rewardInfo}>
-                  <Text style={styles.rewardInfoText}>
-                    +5 credits per ad
-                  </Text>
-                  <Text style={styles.rewardInfoSubtext}>
-                    Watch as many as you want
-                  </Text>
+          <View style={styles.rewardCard}>
+            <LinearGradient
+              colors={['#6c47ff', '#a78bfa']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.rewardGradient}
+            >
+              {/* Decorative circles */}
+              <View style={styles.rewardCircle1} />
+              <View style={styles.rewardCircle2} />
+
+              <View style={styles.rewardTop}>
+                <View style={styles.rewardIconBox}>
+                  <MaterialCommunityIcons name="play-circle" size={26} color="#6c47ff" />
+                </View>
+                <View style={styles.rewardMeta}>
+                  <Text style={styles.rewardTitle}>Watch & Earn</Text>
+                  <Text style={styles.rewardSubtitle}>Free credits, instantly</Text>
+                </View>
+                <View style={styles.rewardBadge}>
+                  <Text style={styles.rewardBadgeText}>+5</Text>
+                  <Text style={styles.rewardBadgeLabel}>per ad</Text>
                 </View>
               </View>
-            </Card.Content>
-          </Card>
+
+              <Text style={styles.rewardDesc}>
+                Watch a short video and earn 5 credits immediately. No daily cap — watch as many as you like!
+              </Text>
+
+              <RewardedAdButton
+                source="profile"
+                size="medium"
+                variant="outline"
+                textColor="white"
+                onAdCompleted={handleAdCompleted}
+                style={styles.rewardBtn}
+              />
+            </LinearGradient>
+          </View>
         </View>
 
         {/* Account Info */}
@@ -331,52 +338,90 @@ const styles = StyleSheet.create({
   globalCreditDisplay: {
     marginHorizontal: 0,
   },
-  earnCreditsCard: {
+  rewardCard: {
     marginTop: 12,
-    elevation: 2,
-    backgroundColor: '#f8faff',
-    borderWidth: 1,
-    borderColor: '#e1e8ff',
+    borderRadius: 20,
+    overflow: 'hidden',
+    elevation: 6,
+    shadowColor: '#6c47ff',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
   },
-  earnCreditsHeader: {
+  rewardGradient: {
+    padding: 20,
+    overflow: 'hidden',
+  },
+  rewardCircle1: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    top: -30,
+    right: -20,
+  },
+  rewardCircle2: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    bottom: 10,
+    left: -15,
+  },
+  rewardTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  earnCreditsTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginLeft: 8,
-  },
-  earnCreditsDescription: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 16,
-    lineHeight: 20,
-  },
-  rewardButtonContainer: {
-    flexDirection: 'row',
+  rewardIconBox: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: 'white',
+    justifyContent: 'center',
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
-  rewardButton: {
-    flex: 0,
-    minWidth: 140,
-  },
-  rewardInfo: {
+  rewardMeta: {
     flex: 1,
-    alignItems: 'flex-end',
+    marginLeft: 12,
   },
-  rewardInfoText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#059669',
+  rewardTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: 'white',
   },
-  rewardInfoSubtext: {
+  rewardSubtitle: {
     fontSize: 12,
-    color: '#6b7280',
+    color: 'rgba(255,255,255,0.75)',
     marginTop: 2,
+  },
+  rewardBadge: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    alignItems: 'center',
+  },
+  rewardBadgeText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: 'white',
+  },
+  rewardBadgeLabel: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  rewardDesc: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.85)',
+    lineHeight: 19,
+    marginBottom: 16,
+  },
+  rewardBtn: {
+    borderColor: 'white',
+    borderWidth: 1.5,
   },
   divider: {
     marginBottom: 16,

@@ -17,8 +17,8 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useDispatch } from 'react-redux';
 import useNavigationHelper from '../helper/NavigationHelper';
 import { SCREEN_NAME } from '../../Constant';
-import BanneerAdd from '../Ads/BanneerAdd';
-import { BannerAdSize } from 'react-native-google-mobile-ads';
+import AdBanner from '../../Components/ads/AdBanner';
+import useInterstitialAd from '../../hooks/useInterstitialAd';
 import { LinearGradient } from 'expo-linear-gradient';
 import Loader from '../../Components/loader/Loader';
 import { useMathSolverMutation } from '../../features/api/upload/uploadPhoto';
@@ -36,6 +36,7 @@ const AIMathSolver = () => {
 
   const [uploadMathQuestion, { isError, isLoading, data, isSuccess }] =
     useMathSolverMutation();
+  const { showAd } = useInterstitialAd();
 
   const [language, setLanguage] = useState('');
 
@@ -109,6 +110,7 @@ const AIMathSolver = () => {
 
       try {
         await uploadMathQuestion(formData).unwrap();
+        await showAd();
       } catch (error) {
         console.error('Upload failed:', error);
         Alert.alert(
@@ -187,10 +189,7 @@ const AIMathSolver = () => {
             )}
           </TouchableOpacity>
 
-          <BanneerAdd.BannerTest
-            bottom={140}
-            bannerAdSize={BannerAdSize.FULL_BANNER}
-          />
+          <AdBanner />
 
           <View style={styles.uploadOptions}>
             <TouchableOpacity

@@ -141,6 +141,10 @@ router.post('/:postId', async (req, res) => {
     const { postId } = req.params;
     const { userId, action, rejectionReason } = req.body;
 
+    if (!postId || postId === 'undefined' || !/^[a-f\d]{24}$/i.test(postId)) {
+      return res.status(400).json({ success: false, message: 'Invalid post ID' });
+    }
+
     const post = await Post.findOne({
       _id: postId,
       userId: userId,

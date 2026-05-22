@@ -25,9 +25,9 @@ const LoginGoogle = () => {
     isSignedIn();
   }, []);
 
-  const isSignedIn = async () => {
-    const isSignedIn = await GoogleSignin.isSignedIn();
-    if (isSignedIn) {
+  const isSignedIn = () => {
+    const currentUser = GoogleSignin.getCurrentUser();
+    if (currentUser) {
       getCurrentUserInfo();
     }
   };

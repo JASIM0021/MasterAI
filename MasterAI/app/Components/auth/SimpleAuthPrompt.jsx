@@ -4,14 +4,13 @@ import {
   StyleSheet,
   Dimensions,
   Alert,
+  TextInput,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
-import {
-  Button,
-  Text,
-  Card,
-  ActivityIndicator,
-  useTheme,
-} from 'react-native-paper';
+import { Text, ActivityIndicator } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GoogleSignin, GoogleSigninButton } from '@react-native-google-signin/google-signin';
 import auth from '@react-native-firebase/auth';
@@ -22,347 +21,458 @@ import { useDispatch } from 'react-redux';
 import { authSuccess } from '../../features/auth/authSlice';
 import AUTH_CONFIG from '../../config/authConfig';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
+
+// view states: 'login' | 'register' | 'verify-otp' | 'forgot-password'
 
 const SimpleAuthPrompt = ({ customMessage = null, onAuthSuccess = null }) => {
-  const theme = useTheme();
   const dispatch = useDispatch();
+  const [view, setView] = useState('login');
   const [loading, setLoading] = useState(false);
   const [googleConfigured, setGoogleConfigured] = useState(false);
 
+  // form fields
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [otp, setOtp] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
   useEffect(() => {
-    configureGoogleSignIn();
+    GoogleSignin.configure(AUTH_CONFIG.google);
+    setGoogleConfigured(true);
   }, []);
 
-  const configureGoogleSignIn = async () => {
-    try {
-      console.log('Configuring Google Sign-In...');
+  const authBaseUrl = AUTH_CONFIG.api.authBaseUrl;
 
-      GoogleSignin.configure(AUTH_CONFIG.google);
-
-      console.log('Google Sign-In configured successfully');
-      setGoogleConfigured(true);
-    } catch (error) {
-      console.error('Failed to configure Google Sign-In:', error);
-      Alert.alert('Configuration Error', 'Failed to configure Google Sign-In. Please check your setup.');
-    }
+  const storeAndDispatch = async (data) => {
+    await AsyncStorage.setItem('userToken', data.token);
+    await AsyncStorage.setItem('userData', JSON.stringify(data.user));
+    dispatch(authSuccess({ user: data.user, token: data.token, method: 'email' }));
+    if (onAuthSuccess) onAuthSuccess(data.user);
   };
 
-  const handleGoogleSignIn = async () => {
-    if (!googleConfigured) {
-      Alert.alert('Error', 'Google Sign-In is not configured yet');
-      return;
-    }
-
+  // ── Email/Password Login ──────────────────────────────────────
+  const handleLogin = async () => {
+    if (!email || !password) return Alert.alert('Error', 'Enter email and password');
+    setLoading(true);
     try {
-      setLoading(true);
-
-      // Check if user is already signed in and sign out for fresh session
-      try {
-        const isSignedIn = await GoogleSignin.isSignedIn();
-        console.log('User already signed in:', isSignedIn);
-
-        if (isSignedIn) {
-          // Sign out first to force a fresh sign-in
-          await GoogleSignin.signOut();
-          console.log('Signed out previous session');
-        }
-      } catch (checkError) {
-        console.log('Could not check sign-in status:', checkError.message);
-        // Continue anyway - this is not critical
-      }
-
-      // Check Google Play Services
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      console.log('Google Play Services available');
-
-      // Perform Google Sign-In
-      console.log('Starting Google Sign-In...');
-      const signInResult = await GoogleSignin.signIn();
-      console.log('Google Sign-In Result:', signInResult);
-
-      // Extract idToken and user from result
-      const { idToken, user } = signInResult.data || {};
-      console.log('idToken:', idToken ? 'Present' : 'MISSING');
-      console.log('user:', user ? JSON.stringify(user, null, 2) : 'MISSING');
-
-      if (!idToken) {
-        throw new Error('Google Sign-In failed: No ID token received');
-      }
-
-      if (!user) {
-        throw new Error('Google Sign-In failed: No user data received');
-      }
-      // Optional Firebase authentication
-      try {
-        const googleCredential = auth.GoogleAuthProvider.credential(idToken);
-        await auth().signInWithCredential(googleCredential);
-
-
-
-      } catch (firebaseError) {
-        console.warn('Firebase auth failed:', firebaseError?.message || firebaseError);
-        // Continue without Firebase - this is optional auth
-      }
-
-      // Authenticate with backend
-      const response = await axios.post(
-        `${AUTH_CONFIG.api.authBaseUrl}google`,
-        {
-          idToken,
-          user: {
-            id: user?.id,
-            name: user?.name,
-            email: user?.email,
-            photo: user?.photo,
-          },
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      console.log('response', response)
-
-      if (response.data.success) {
-        // Store authentication data
-        await AsyncStorage.setItem('userToken', response.data.token);
-        await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
-        await AsyncStorage.setItem('lastSignInMethod', 'google');
-
-        // Update Redux state
-        dispatch(authSuccess({
-          user: response?.data?.user,
-          token: response?.data?.token,
-          method: 'google',
-        }));
-
-        // Call success callback
-        if (onAuthSuccess) {
-          onAuthSuccess(response?.data?.user);
-        }
-
-        Alert.alert('Success', 'Signed in successfully!');
+      const res = await axios.post(`${authBaseUrl}login`, { email, password });
+      if (res.data.success) {
+        await storeAndDispatch(res.data);
       } else {
-        Alert.alert('Error', response?.data?.message || 'Authentication failed');
+        Alert.alert('Login Failed', res.data.message || 'Invalid credentials');
       }
-
-    } catch (error) {
-      console.log('error', error)
-      console.error('Google Sign-In Error Details:', {
-        message: error?.message,
-        code: error?.code,
-        stack: error?.stack,
-        fullError: error
-      });
-
-      let errorMessage = 'Sign in failed. Please try again.';
-
-      if (error?.code === 'SIGN_IN_CANCELLED' || error?.code === 12501) {
-        errorMessage = 'Sign in was cancelled by user';
-      } else if (error?.code === 'IN_PROGRESS' || error?.code === 12502) {
-        errorMessage = 'Sign in is already in progress';
-      } else if (error?.code === 'PLAY_SERVICES_NOT_AVAILABLE' || error?.code === 2) {
-        errorMessage = 'Google Play Services is not available';
-      } else if (error?.code === 'SIGN_IN_REQUIRED' || error?.code === 4) {
-        errorMessage = 'Google Sign-In is required but not configured properly';
-      } else if (error?.code === 'INVALID_ACCOUNT' || error?.code === 5) {
-        errorMessage = 'Invalid Google account selected';
-      } else if (error?.code === 'NETWORK_ERROR' || error?.code === 7) {
-        errorMessage = 'Network error. Please check your internet connection';
-      } else if (error?.code === 'INTERNAL_ERROR' || error?.code === 8) {
-        errorMessage = 'Internal error. Please try again later';
-      } else if (error?.message?.includes('DEVELOPER_ERROR')) {
-        errorMessage = 'Configuration error. Please check Google Sign-In setup';
-      } else if (error?.message) {
-        errorMessage = `Error: ${error.message}`;
-      }
-
-      Alert.alert('Google Sign-In Error', errorMessage);
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Login failed. Try again.';
+      Alert.alert('Error', msg);
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={['#667eea', '#764ba2']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.authPromptGradient}
-      >
-        {loading && (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color="white" />
-            <Text style={styles.loadingText}>Signing in...</Text>
-          </View>
-        )}
+  // ── Register ──────────────────────────────────────────────────
+  const handleRegister = async () => {
+    if (!name || !email || !password) return Alert.alert('Error', 'All fields are required');
+    if (password !== confirmPassword) return Alert.alert('Error', 'Passwords do not match');
+    if (password.length < 6) return Alert.alert('Error', 'Password must be at least 6 characters');
+    setLoading(true);
+    try {
+      const res = await axios.post(`${authBaseUrl}register`, { name, email, password });
+      if (res.data.success) {
+        setView('verify-otp');
+      } else {
+        Alert.alert('Error', res.data.message || 'Registration failed');
+      }
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.message || 'Registration failed');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        <MaterialCommunityIcons
-          name="account-lock"
-          size={80}
-          color="white"
-          style={styles.authIcon}
-        />
+  // ── Verify OTP ────────────────────────────────────────────────
+  const handleVerifyOtp = async () => {
+    if (!otp || otp.length !== 6) return Alert.alert('Error', 'Enter the 6-digit OTP');
+    setLoading(true);
+    try {
+      const res = await axios.post(`${authBaseUrl}verify-otp`, { email, otp });
+      if (res.data.success) {
+        await storeAndDispatch(res.data);
+      } else {
+        Alert.alert('Error', res.data.message || 'OTP verification failed');
+      }
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.message || 'Verification failed');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        <Text style={styles.authTitle}>Sign In Required</Text>
+  const handleResendOtp = async () => {
+    setLoading(true);
+    try {
+      await axios.post(`${authBaseUrl}resend-otp`, { email });
+      Alert.alert('Sent', 'A new OTP has been sent to your email');
+    } catch {
+      Alert.alert('Error', 'Could not resend OTP');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        <Text style={styles.authMessage}>
-          {customMessage ||
-            "Please sign in to access AI generation features and save your creations."
-          }
-        </Text>
+  // ── Forgot Password ───────────────────────────────────────────
+  const handleForgotPassword = async () => {
+    if (!email) return Alert.alert('Error', 'Enter your email address');
+    setLoading(true);
+    try {
+      await axios.post(`${authBaseUrl}forgot-password`, { email });
+      Alert.alert('Sent', 'If an account exists, a reset OTP has been sent to your email.');
+    } catch {
+      Alert.alert('Error', 'Could not send reset email');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        <View style={styles.featuresList}>
-          <View style={styles.featureItem}>
-            <MaterialCommunityIcons name="check-circle" size={20} color="#4caf50" />
-            <Text style={styles.featureText}>Unlimited AI generations</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <MaterialCommunityIcons name="check-circle" size={20} color="#4caf50" />
-            <Text style={styles.featureText}>Save and organize your content</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <MaterialCommunityIcons name="check-circle" size={20} color="#4caf50" />
-            <Text style={styles.featureText}>Sync across all devices</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <MaterialCommunityIcons name="check-circle" size={20} color="#4caf50" />
-            <Text style={styles.featureText}>Priority support</Text>
-          </View>
-        </View>
+  // ── Google Sign-In ────────────────────────────────────────────
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      const currentUser = GoogleSignin.getCurrentUser();
+      if (currentUser) await GoogleSignin.signOut().catch(() => {});
 
-        {googleConfigured ? (
-          <GoogleSigninButton
-            style={styles.googleButton}
-            size={GoogleSigninButton.Size.Wide}
-            color={GoogleSigninButton.Color.Light}
-            onPress={handleGoogleSignIn}
-            disabled={loading}
-          />
-        ) : (
-          <Button
-            mode="contained"
-            onPress={handleGoogleSignIn}
-            style={styles.signInButton}
-            contentStyle={styles.signInButtonContent}
-            labelStyle={styles.signInButtonText}
-            icon="login"
-            disabled={loading}
-          >
-            Sign In with Google
-          </Button>
-        )}
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const result = await GoogleSignin.signIn();
+      const { idToken, user } = result.data || {};
+      if (!idToken) throw new Error('No ID token received');
 
-        <Text style={styles.signUpPrompt}>
-          Don't have an account? Sign in to create one instantly!
-        </Text>
-      </LinearGradient>
+      try {
+        const cred = auth.GoogleAuthProvider.credential(idToken);
+        await auth().signInWithCredential(cred);
+      } catch {}
+
+      const res = await axios.post(`${authBaseUrl}google`, {
+        idToken,
+        user: { id: user?.id, name: user?.name, email: user?.email, photo: user?.photo },
+      });
+
+      if (res.data.success) {
+        await AsyncStorage.setItem('userToken', res.data.token);
+        await AsyncStorage.setItem('userData', JSON.stringify(res.data.user));
+        await AsyncStorage.setItem('lastSignInMethod', 'google');
+        dispatch(authSuccess({ user: res.data.user, token: res.data.token, method: 'google' }));
+        if (onAuthSuccess) onAuthSuccess(res.data.user);
+      } else {
+        Alert.alert('Error', res.data.message || 'Authentication failed');
+      }
+    } catch (err) {
+      if (err?.code !== 'SIGN_IN_CANCELLED' && err?.code !== 12501) {
+        Alert.alert('Google Sign-In Error', err?.message || 'Sign in failed');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Render helpers ────────────────────────────────────────────
+  const InputField = ({ icon, placeholder, value, onChangeText, secureTextEntry, keyboardType, right }) => (
+    <View style={styles.inputWrapper}>
+      <MaterialCommunityIcons name={icon} size={20} color="rgba(255,255,255,0.7)" style={styles.inputIcon} />
+      <TextInput
+        style={styles.input}
+        placeholder={placeholder}
+        placeholderTextColor="rgba(255,255,255,0.5)"
+        value={value}
+        onChangeText={onChangeText}
+        secureTextEntry={secureTextEntry}
+        keyboardType={keyboardType || 'default'}
+        autoCapitalize="none"
+      />
+      {right}
     </View>
+  );
+
+  const PrimaryButton = ({ label, onPress, disabled }) => (
+    <TouchableOpacity style={[styles.primaryBtn, disabled && { opacity: 0.6 }]} onPress={onPress} disabled={disabled}>
+      {loading ? <ActivityIndicator color="#6c47ff" size="small" /> : <Text style={styles.primaryBtnText}>{label}</Text>}
+    </TouchableOpacity>
+  );
+
+  const renderOtpView = () => (
+    <View style={styles.formArea}>
+      <Text style={styles.viewTitle}>Verify Email</Text>
+      <Text style={styles.viewSubtitle}>We sent a 6-digit code to {email}</Text>
+
+      <InputField icon="shield-key" placeholder="6-digit OTP" value={otp} onChangeText={setOtp} keyboardType="number-pad" />
+
+      <PrimaryButton label="Verify" onPress={handleVerifyOtp} disabled={loading} />
+
+      <TouchableOpacity onPress={handleResendOtp} style={styles.linkRow}>
+        <Text style={styles.linkText}>Didn't receive it? </Text>
+        <Text style={[styles.linkText, styles.linkBold]}>Resend OTP</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderForgotView = () => (
+    <View style={styles.formArea}>
+      <Text style={styles.viewTitle}>Reset Password</Text>
+      <Text style={styles.viewSubtitle}>Enter your email to receive a reset code</Text>
+
+      <InputField icon="email-outline" placeholder="Email address" value={email} onChangeText={setEmail} keyboardType="email-address" />
+
+      <PrimaryButton label="Send Reset Code" onPress={handleForgotPassword} disabled={loading} />
+
+      <TouchableOpacity onPress={() => setView('login')} style={styles.linkRow}>
+        <MaterialCommunityIcons name="arrow-left" size={14} color="rgba(255,255,255,0.8)" />
+        <Text style={[styles.linkText, { marginLeft: 4 }]}>Back to Login</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderLoginView = () => (
+    <View style={styles.formArea}>
+      {/* Tabs */}
+      <View style={styles.tabs}>
+        <TouchableOpacity style={[styles.tab, view === 'login' && styles.tabActive]} onPress={() => setView('login')}>
+          <Text style={[styles.tabText, view === 'login' && styles.tabTextActive]}>Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.tab, view === 'register' && styles.tabActive]} onPress={() => setView('register')}>
+          <Text style={[styles.tabText, view === 'register' && styles.tabTextActive]}>Register</Text>
+        </TouchableOpacity>
+      </View>
+
+      <InputField icon="email-outline" placeholder="Email address" value={email} onChangeText={setEmail} keyboardType="email-address" />
+      <InputField
+        icon="lock-outline"
+        placeholder="Password"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry={!showPassword}
+        right={
+          <TouchableOpacity onPress={() => setShowPassword(p => !p)} style={styles.eyeBtn}>
+            <MaterialCommunityIcons name={showPassword ? 'eye-off' : 'eye'} size={20} color="rgba(255,255,255,0.6)" />
+          </TouchableOpacity>
+        }
+      />
+
+      <TouchableOpacity onPress={() => setView('forgot-password')} style={{ alignSelf: 'flex-end', marginBottom: 16 }}>
+        <Text style={[styles.linkText, { fontSize: 12 }]}>Forgot password?</Text>
+      </TouchableOpacity>
+
+      <PrimaryButton label="Login" onPress={handleLogin} disabled={loading} />
+    </View>
+  );
+
+  const renderRegisterView = () => (
+    <View style={styles.formArea}>
+      {/* Tabs */}
+      <View style={styles.tabs}>
+        <TouchableOpacity style={[styles.tab, view === 'login' && styles.tabActive]} onPress={() => setView('login')}>
+          <Text style={[styles.tabText, view === 'login' && styles.tabTextActive]}>Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.tab, view === 'register' && styles.tabActive]} onPress={() => setView('register')}>
+          <Text style={[styles.tabText, view === 'register' && styles.tabTextActive]}>Register</Text>
+        </TouchableOpacity>
+      </View>
+
+      <InputField icon="account-outline" placeholder="Full name" value={name} onChangeText={setName} />
+      <InputField icon="email-outline" placeholder="Email address" value={email} onChangeText={setEmail} keyboardType="email-address" />
+      <InputField
+        icon="lock-outline"
+        placeholder="Password"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry={!showPassword}
+        right={
+          <TouchableOpacity onPress={() => setShowPassword(p => !p)} style={styles.eyeBtn}>
+            <MaterialCommunityIcons name={showPassword ? 'eye-off' : 'eye'} size={20} color="rgba(255,255,255,0.6)" />
+          </TouchableOpacity>
+        }
+      />
+      <InputField icon="lock-check-outline" placeholder="Confirm password" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
+
+      <PrimaryButton label="Create Account" onPress={handleRegister} disabled={loading} />
+    </View>
+  );
+
+  return (
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboardView}>
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <LinearGradient
+          colors={['#6c47ff', '#a78bfa']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.card}
+        >
+          {loading && (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="large" color="white" />
+            </View>
+          )}
+
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.iconCircle}>
+              <MaterialCommunityIcons name="account-lock" size={36} color="#6c47ff" />
+            </View>
+            <Text style={styles.title}>
+              {view === 'verify-otp' ? 'Check Your Email' :
+               view === 'forgot-password' ? 'Forgot Password' :
+               'Welcome to MasterAI'}
+            </Text>
+            {(view === 'login' || view === 'register') && (
+              <Text style={styles.subtitle}>
+                {customMessage || 'Sign in to unlock AI-powered tools'}
+              </Text>
+            )}
+          </View>
+
+          {/* Form area */}
+          {view === 'verify-otp' && renderOtpView()}
+          {view === 'forgot-password' && renderForgotView()}
+          {view === 'login' && renderLoginView()}
+          {view === 'register' && renderRegisterView()}
+
+          {/* Divider + Google — only on login/register views */}
+          {(view === 'login' || view === 'register') && (
+            <>
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {googleConfigured ? (
+                <GoogleSigninButton
+                  style={styles.googleBtn}
+                  size={GoogleSigninButton.Size.Wide}
+                  color={GoogleSigninButton.Color.Light}
+                  onPress={handleGoogleSignIn}
+                  disabled={loading}
+                />
+              ) : (
+                <TouchableOpacity style={styles.googleFallback} onPress={handleGoogleSignIn}>
+                  <MaterialCommunityIcons name="google" size={20} color="#6c47ff" />
+                  <Text style={styles.googleFallbackText}>Continue with Google</Text>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
+        </LinearGradient>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#f5f5f5',
-  },
-  authPromptGradient: {
-    width: width * 0.9,
-    borderRadius: 20,
-    padding: 30,
-    alignItems: 'center',
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 5,
-    },
-    shadowOpacity: 0.34,
-    shadowRadius: 6.27,
-    position: 'relative',
+  keyboardView: { flex: 1 },
+  scroll: { flexGrow: 1, justifyContent: 'center', padding: 20, backgroundColor: '#f0eeff' },
+  card: {
+    width: '100%',
+    maxWidth: 420,
+    alignSelf: 'center',
+    borderRadius: 24,
+    padding: 24,
+    elevation: 12,
+    shadowColor: '#6c47ff',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    overflow: 'hidden',
   },
   loadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: 20,
     zIndex: 10,
+    borderRadius: 24,
   },
-  loadingText: {
-    color: 'white',
-    marginTop: 10,
-    fontSize: 16,
+
+  // Header
+  header: { alignItems: 'center', marginBottom: 24 },
+  iconCircle: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    elevation: 4,
   },
-  authIcon: {
+  title: { fontSize: 22, fontWeight: '700', color: 'white', textAlign: 'center' },
+  subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.8)', textAlign: 'center', marginTop: 6 },
+
+  // Tabs
+  formArea: { width: '100%' },
+  tabs: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 12,
+    padding: 4,
     marginBottom: 20,
   },
-  authTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  authMessage: {
-    fontSize: 16,
-    color: 'white',
-    textAlign: 'center',
-    marginBottom: 25,
-    lineHeight: 22,
-    opacity: 0.9,
-  },
-  featuresList: {
-    width: '100%',
-    marginBottom: 25,
-  },
-  featureItem: {
+  tab: { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center' },
+  tabActive: { backgroundColor: 'white' },
+  tabText: { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.7)' },
+  tabTextActive: { color: '#6c47ff' },
+
+  // Inputs
+  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
-  },
-  featureText: {
-    color: 'white',
-    marginLeft: 10,
-    fontSize: 14,
-  },
-  googleButton: {
-    width: 192,
-    height: 48,
-    marginBottom: 20,
-  },
-  signInButton: {
-    backgroundColor: 'white',
-    marginBottom: 20,
-    borderRadius: 25,
-    elevation: 3,
-  },
-  signInButtonContent: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 12,
+    marginBottom: 12,
+    paddingHorizontal: 14,
     height: 50,
-    paddingHorizontal: 20,
   },
-  signInButtonText: {
-    color: '#667eea',
-    fontSize: 16,
-    fontWeight: 'bold',
+  inputIcon: { marginRight: 10 },
+  input: { flex: 1, color: 'white', fontSize: 14 },
+  eyeBtn: { padding: 4 },
+
+  // Buttons
+  primaryBtn: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 4,
+    elevation: 2,
   },
-  signUpPrompt: {
-    color: 'white',
-    fontSize: 12,
-    textAlign: 'center',
-    opacity: 0.8,
+  primaryBtnText: { color: '#6c47ff', fontWeight: '700', fontSize: 16 },
+
+  // Links
+  linkRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 16 },
+  linkText: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
+  linkBold: { fontWeight: '700', color: 'white' },
+
+  // Divider
+  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.3)' },
+  dividerText: { color: 'rgba(255,255,255,0.6)', marginHorizontal: 12, fontSize: 12 },
+
+  // Google button
+  googleBtn: { width: '100%', height: 48, alignSelf: 'center' },
+  googleFallback: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    height: 50,
+    gap: 10,
   },
+  googleFallbackText: { color: '#6c47ff', fontWeight: '600', fontSize: 15 },
+
+  // OTP/Forgot sub-views
+  viewTitle: { fontSize: 18, fontWeight: '700', color: 'white', marginBottom: 6 },
+  viewSubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginBottom: 20 },
 });
 
 export default SimpleAuthPrompt;

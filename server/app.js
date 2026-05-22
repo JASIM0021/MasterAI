@@ -19,6 +19,7 @@ const { default: helmet } = require('helmet');
 const creditResetService = require('./services/creditResetService');
 const { authRoutes } = require('./routes/auth');
 const { pushRouter } = require('./routes/notifications');
+const razorpayRouter = require('./routes/razorpay');
 dotenv.config();
 
 // Temporarily disable clustering to fix Mongoose model compilation issues
@@ -49,7 +50,8 @@ dotenv.config();
         req.path.startsWith('/api/social/auth') ||
         req.path.startsWith('/api/payments/success') ||
         req.path.startsWith('/api/payments/failure') ||
-        req.path.startsWith('/api/payments/cancel')) {
+        req.path.startsWith('/api/payments/cancel') ||
+        req.path.startsWith('/api/razorpay')) {
       return next();
     }
 
@@ -108,6 +110,9 @@ app.use('/api/fcm',pushRouter)
 
   // Payment routes (PayU webhooks don't require API key)
   app.use('/api/payments', require('./routes/payments'));
+
+  // Razorpay payment routes
+  app.use('/api/razorpay', razorpayRouter);
 
   // Social routes (no API key required for OAuth)
   app.use('/api/social', require('./routes/social'));

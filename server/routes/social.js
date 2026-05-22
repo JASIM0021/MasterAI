@@ -78,24 +78,40 @@ passport.use(new TwitterStrategy({
 // Initialize passport
 router.use(passport.initialize());
 
+// Resolve userId from either ?userId= or ?token= (JWT)
+function resolveUserId(req) {
+  if (req.query.userId) return req.query.userId;
+  if (req.query.token) {
+    try {
+      const jwt = require('jsonwebtoken');
+      const decoded = jwt.verify(req.query.token, process.env.JWT_SECRET || 'your-secret-key');
+      return decoded.userId || decoded.id;
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+}
+
 // Store user ID in session for OAuth callbacks
 router.use((req, res, next) => {
-  if (req.query.userId) {
+  const userId = resolveUserId(req);
+  if (userId) {
     req.session = req.session || {};
-    req.session.userId = req.query.userId;
+    req.session.pendingUserId = userId;
   }
   next();
 });
 
 // FACEBOOK AUTHENTICATION
 router.get('/auth/facebook', (req, res, next) => {
-  const { userId } = req.query;
+  const userId = resolveUserId(req);
   if (!userId) {
-    return res.status(400).json({ success: false, message: 'User ID required' });
+    return res.status(400).json({ success: false, message: 'User ID or token required' });
   }
 
   req.session = req.session || {};
-  req.session.userId = userId;
+  req.session.pendingUserId = userId;
 
   passport.authenticate('facebook', {
     scope: ['pages_manage_posts', 'pages_read_engagement', 'publish_to_groups', 'instagram_basic', 'instagram_content_publish']
@@ -105,12 +121,13 @@ router.get('/auth/facebook', (req, res, next) => {
 router.get('/auth/facebook/callback',
   passport.authenticate('facebook', { session: false }),
   async (req, res) => {
+    const appScheme = process.env.APP_SCHEME || 'masterai';
     try {
       const { profile, accessToken } = req.user;
-      const userId = req.session?.userId;
+      const userId = req.session?.pendingUserId || req.session?.userId;
 
       if (!userId) {
-        return res.redirect(`${process.env.FRONTEND_URL}/social-automate?error=missing_user_id`);
+        return res.redirect(`${appScheme}://social-connect?error=missing_user_id&platform=facebook`);
       }
 
       // Save Facebook account
@@ -125,23 +142,23 @@ router.get('/auth/facebook/callback',
       // Also fetch and save Facebook pages
       await fetchAndSaveFacebookPages(userId, accessToken);
 
-      res.redirect(`${process.env.FRONTEND_URL}/social-automate?success=facebook_connected`);
+      res.redirect(`${appScheme}://social-connect?success=true&platform=facebook&accountId=${socialAccount._id}`);
     } catch (error) {
       console.error('Facebook callback error:', error);
-      res.redirect(`${process.env.FRONTEND_URL}/social-automate?error=facebook_connection_failed`);
+      res.redirect(`${appScheme}://social-connect?error=facebook_connection_failed&platform=facebook`);
     }
   }
 );
 
 // INSTAGRAM AUTHENTICATION (via Facebook)
 router.get('/auth/instagram', (req, res, next) => {
-  const { userId } = req.query;
+  const userId = resolveUserId(req);
   if (!userId) {
-    return res.status(400).json({ success: false, message: 'User ID required' });
+    return res.status(400).json({ success: false, message: 'User ID or token required' });
   }
 
   req.session = req.session || {};
-  req.session.userId = userId;
+  req.session.pendingUserId = userId;
   req.session.platform = 'instagram';
 
   passport.authenticate('facebook', {
@@ -151,13 +168,13 @@ router.get('/auth/instagram', (req, res, next) => {
 
 // LINKEDIN AUTHENTICATION
 router.get('/auth/linkedin', (req, res, next) => {
-  const { userId } = req.query;
+  const userId = resolveUserId(req);
   if (!userId) {
-    return res.status(400).json({ success: false, message: 'User ID required' });
+    return res.status(400).json({ success: false, message: 'User ID or token required' });
   }
 
   req.session = req.session || {};
-  req.session.userId = userId;
+  req.session.pendingUserId = userId;
 
   passport.authenticate('linkedin')(req, res, next);
 });
@@ -165,15 +182,16 @@ router.get('/auth/linkedin', (req, res, next) => {
 router.get('/auth/linkedin/callback',
   passport.authenticate('linkedin', { session: false }),
   async (req, res) => {
+    const appScheme = process.env.APP_SCHEME || 'masterai';
     try {
       const { profile, accessToken } = req.user;
-      const userId = req.session?.userId;
+      const userId = req.session?.pendingUserId || req.session?.userId;
 
       if (!userId) {
-        return res.redirect(`${process.env.FRONTEND_URL}/social-automate?error=missing_user_id`);
+        return res.redirect(`${appScheme}://social-connect?error=missing_user_id&platform=linkedin`);
       }
 
-      await saveSocialAccount({
+      const socialAccount = await saveSocialAccount({
         userId,
         platform: 'linkedin',
         profile,
@@ -181,23 +199,23 @@ router.get('/auth/linkedin/callback',
         accountType: 'personal'
       });
 
-      res.redirect(`${process.env.FRONTEND_URL}/social-automate?success=linkedin_connected`);
+      res.redirect(`${appScheme}://social-connect?success=true&platform=linkedin&accountId=${socialAccount._id}`);
     } catch (error) {
       console.error('LinkedIn callback error:', error);
-      res.redirect(`${process.env.FRONTEND_URL}/social-automate?error=linkedin_connection_failed`);
+      res.redirect(`${appScheme}://social-connect?error=linkedin_connection_failed&platform=linkedin`);
     }
   }
 );
 
 // TWITTER AUTHENTICATION
 router.get('/auth/twitter', (req, res, next) => {
-  const { userId } = req.query;
+  const userId = resolveUserId(req);
   if (!userId) {
-    return res.status(400).json({ success: false, message: 'User ID required' });
+    return res.status(400).json({ success: false, message: 'User ID or token required' });
   }
 
   req.session = req.session || {};
-  req.session.userId = userId;
+  req.session.pendingUserId = userId;
 
   passport.authenticate('twitter')(req, res, next);
 });
@@ -205,15 +223,16 @@ router.get('/auth/twitter', (req, res, next) => {
 router.get('/auth/twitter/callback',
   passport.authenticate('twitter', { session: false }),
   async (req, res) => {
+    const appScheme = process.env.APP_SCHEME || 'masterai';
     try {
       const { profile, accessToken, tokenSecret } = req.user;
-      const userId = req.session?.userId;
+      const userId = req.session?.pendingUserId || req.session?.userId;
 
       if (!userId) {
-        return res.redirect(`${process.env.FRONTEND_URL}/social-automate?error=missing_user_id`);
+        return res.redirect(`${appScheme}://social-connect?error=missing_user_id&platform=twitter`);
       }
 
-      await saveSocialAccount({
+      const socialAccount = await saveSocialAccount({
         userId,
         platform: 'twitter',
         profile,
@@ -222,10 +241,10 @@ router.get('/auth/twitter/callback',
         accountType: 'personal'
       });
 
-      res.redirect(`${process.env.FRONTEND_URL}/social-automate?success=twitter_connected`);
+      res.redirect(`${appScheme}://social-connect?success=true&platform=twitter&accountId=${socialAccount._id}`);
     } catch (error) {
       console.error('Twitter callback error:', error);
-      res.redirect(`${process.env.FRONTEND_URL}/social-automate?error=twitter_connection_failed`);
+      res.redirect(`${appScheme}://social-connect?error=twitter_connection_failed&platform=twitter`);
     }
   }
 );

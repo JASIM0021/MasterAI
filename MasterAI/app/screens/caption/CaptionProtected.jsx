@@ -31,11 +31,7 @@ import {
 } from '../../features/api/upload/uploadPhoto';
 import useNavigationHelper from '../helper/NavigationHelper';
 import { SCREEN_NAME } from '../../Constant';
-import BanneerAdd from '../Ads/BanneerAdd';
-import {
-  BannerAdSize,
-  useInterstitialAd,
-} from 'react-native-google-mobile-ads';
+import AdBanner from '../../Components/ads/AdBanner';
 import Loader from '../../Components/loader/Loader';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -421,6 +417,7 @@ const CaptionProtected = () => {
         style={styles.container}
       >
         <Header isBack={true} title="Create Caption" />
+        <AdBanner />
         <ScrollView style={styles.content}>
           {/* {renderUserInfo()} */}
           {/* {renderQuotaWarning()} */}
@@ -578,7 +575,7 @@ const CaptionProtected = () => {
         </Portal>
         <Loader isAnalyzing={isLoading} />
 
-        <BanneerAdd.BannerTest bannerAdSize={BannerAdSize.FULL_BANNER} />
+        <AdBanner />
       </LinearGradient>
     </SafeAreaView>
   );

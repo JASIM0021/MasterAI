@@ -9,7 +9,8 @@ if (!global.btoa) {
 if (!global.atob) {
   global.atob = decode;
 }
-import { LogBox, SafeAreaView, StatusBar, useColorScheme, Platform } from 'react-native';
+import { LogBox, SafeAreaView, useColorScheme, Platform } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
 import { Provider as PaperProvider } from 'react-native-paper';
 import React, { useContext, useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
@@ -37,19 +38,14 @@ if (__DEV__) {
   require('./app/utils/authDebug.js');
 }
 
-// mobileAds()
-//   .initialize()
-//   .then(adapterStatuses => {
-//     // Initialization complete!
-//     console.log('AdMob initialized:', adapterStatuses);
-
-//     // Initialize app open ad service after AdMob is ready
-//     const appOpenAdService = getAppOpenAdService();
-//     console.log('App Open Ad service initialized');
-
-//     // Trigger first ad load and display for app launch
-//     console.log('Triggering initial app open ad load');
-//   });
+mobileAds()
+  .initialize()
+  .then(() => {
+    console.log('AdMob initialized');
+    // Start app open ad service after AdMob is ready
+    getAppOpenAdService().initAsync();
+  })
+  .catch(e => console.warn('AdMob init failed:', e));
 
 LogBox.ignoreAllLogs();
 
@@ -59,17 +55,9 @@ export default function App() {
   const [loader, setLoader] = useState(false);
   const [token, setToken] = useState('');
 
-  // useEffect(() => {
-  //   getToken();
-  // }, []);
   useEffect(() => {
-    // Initialize push notifications
-    RNPushService.initialize()
-
-    return () => {
-      // Clean up on unmount
-      RNPushService.unsubscribe();
-    };
+    RNPushService.initialize();
+    return () => RNPushService.unsubscribe();
   }, []);
   const colorScheme = useColorScheme();
   const theme = colorScheme === 'dark' ? darkTheme : lightTheme;
@@ -80,18 +68,7 @@ export default function App() {
       <PaperProvider theme={lightTheme}>
         <SafeAreaProvider>
           <AuthInitializer>
-            <StatusBar
-              animated={true}
-              backgroundColor={Platform.OS === 'android' ? 'transparent' : (
-                colorScheme === 'dark'
-                  ? darkTheme.colors.background
-                  : lightTheme.colors.background
-              )}
-              barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'}
-              translucent={Platform.OS === 'android'}
-              showHideTransition="slide"
-              hidden={false}
-            />
+            <SystemBars style={colorScheme === 'dark' ? 'light' : 'dark'} />
             <NavigationContainer>
               {/* <AuthNavigation />
               progress || syncMessage ? (

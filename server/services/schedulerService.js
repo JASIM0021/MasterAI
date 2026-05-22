@@ -169,53 +169,6 @@ class SchedulerService {
     const scheduleId = schedule._id.toString();
     const userId = schedule.userId.toString();
 
-    // Check user's automation credit limits
-
-    const user = await User.findById(userId);
-
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    // Debug: Check if user object has the required methods
-    console.log('🔍 User object type:', typeof user);
-    console.log('🔍 User object constructor:', user.constructor.name);
-    console.log('🔍 Has getAvailableGlobalCredits method:', typeof user.getAvailableGlobalCredits);
-    console.log('🔍 Has hasAutomationCredits method:', typeof user.hasAutomationCredits);
-
-    // Check if user object has required methods
-    if (typeof user.hasAutomationCredits !== 'function') {
-      throw new Error('User object is missing required methods. Expected Mongoose document but got plain object.');
-    }
-
-    // Check if user has enough global credits to create automation (10 credits)
-    const hasCredits = await user.hasAutomationCredits();
-
-    if (typeof user.getAvailableGlobalCredits !== 'function') {
-      throw new Error('User object is missing getAvailableGlobalCredits method. Expected Mongoose document but got plain object.');
-    }
-
-    const availableGlobalCredits = await user.getAvailableGlobalCredits();
-
-    console.log(`📊 User ${userId} automation creation: ${availableGlobalCredits} global credits available, needs 10 credits`);
-
-    if (!hasCredits) {
-      const errorMsg = `Cannot create automation: insufficient global credits. Have ${availableGlobalCredits} credits but need 10 credits to create automation.`;
-      console.log(`⚠️ ${errorMsg}`);
-      throw new Error(errorMsg);
-    }
-
-    // Consume 10 global credits for automation creation
-    try {
-      await user.consumeAutomationCredit();
-      const remainingCredits = await user.getAvailableGlobalCredits();
-      console.log(`💳 Consumed 10 global credits for automation creation. Remaining: ${remainingCredits}`);
-    } catch (creditError) {
-      const errorMsg = `Failed to consume automation credits: ${creditError.message}`;
-      console.log(`⚠️ ${errorMsg}`);
-      throw new Error(errorMsg);
-    }
-
     // Stop existing job if any
     this.stopJob(scheduleId, userId);
 
@@ -242,9 +195,7 @@ class SchedulerService {
       case 'daily':
         if (schedule.recurrence.timeSlots && schedule.recurrence.timeSlots.length > 0) {
           const slot = schedule.recurrence.timeSlots[0];
-          // Use actual scheduled time (not every minute)
-          // cronExpression = `${slot.minute} ${slot.hour} * * *`;
-          cronExpression = `* * * * *`;
+          cronExpression = `${slot.minute} ${slot.hour} * * *`;
         }
         break;
 

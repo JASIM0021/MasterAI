@@ -4,12 +4,13 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const TabComponent = ({ tabs }) => {
   const [activeTab, setActiveTab] = useState(0);
+  const insets = useSafeAreaInsets();
 
   const renderScreen = () => {
     const ActiveScreen = tabs[activeTab].component;
@@ -17,12 +18,12 @@ const TabComponent = ({ tabs }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Main Content */}
       <View style={styles.content}>{renderScreen()}</View>
 
-      {/* Custom Tab Bar */}
-      <View style={styles.tabBar}>
+      {/* height = tab items (60) + system nav bar height (insets.bottom) */}
+      <View style={[styles.tabBar, { height: 60 + insets.bottom, paddingBottom: insets.bottom }]}>
         {tabs.map((tab, index) => (
           <TouchableOpacity
             key={tab.key}
@@ -48,7 +49,7 @@ const TabComponent = ({ tabs }) => {
           </TouchableOpacity>
         ))}
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 

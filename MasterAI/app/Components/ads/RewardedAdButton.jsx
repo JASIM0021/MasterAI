@@ -20,7 +20,8 @@ const RewardedAdButton = ({
   onAdCompleted,
   onAdFailed,
   disabled = false,
-  creditsToEarn = 5
+  creditsToEarn = 5,
+  textColor: textColorOverride,
 }) => {
   const {
     watchAd,
@@ -85,7 +86,10 @@ const RewardedAdButton = ({
   };
 
   const currentSize = sizeConfig[size];
-  const currentVariant = variantConfig[variant];
+  const baseVariant = variantConfig[variant];
+  const currentVariant = textColorOverride
+    ? { ...baseVariant, textColor: textColorOverride }
+    : baseVariant;
 
   const handlePress = async () => {
     if (disabled || isLoading) return;

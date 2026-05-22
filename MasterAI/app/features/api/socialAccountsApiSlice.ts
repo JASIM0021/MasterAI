@@ -1,5 +1,23 @@
 import globalApiSlice from "./globalApiSlice";
 
+interface ConnectedAccount {
+  id: string;
+  accountId: string;
+  accountName: string;
+  username: string | null;
+  profilePicture: string | null;
+  accountType: string;
+  isVerified: boolean;
+  lastConnected: string;
+  permissions: string[];
+}
+
+interface ConnectedAccountsResponse {
+  success: boolean;
+  accounts: Record<string, ConnectedAccount[]>;
+  totalAccounts: number;
+}
+
 // Simplified platform interface - no OAuth required
 interface SocialPlatform {
   id: string;
@@ -43,7 +61,7 @@ interface GenerateSharingUrlsRequest {
   platforms?: string[];
 }
 
-// Simplified API slice - no OAuth, just platform info and sharing URLs
+// API slice with real endpoints for connected accounts management
 export const socialAccountsApiSlice = globalApiSlice.injectEndpoints({
   endpoints: (builder) => ({
     // Get available platforms info
@@ -131,6 +149,33 @@ export const socialAccountsApiSlice = globalApiSlice.injectEndpoints({
         { type: 'SharingUrls', id: postId },
       ],
     }),
+
+    // Get connected social accounts for the current user
+    getConnectedAccounts: builder.query<ConnectedAccountsResponse, void>({
+      query: () => ({
+        url: 'social/accounts',
+        method: 'GET',
+      }),
+      providesTags: ['ConnectedAccounts'],
+    }),
+
+    // Disconnect a social account
+    disconnectAccount: builder.mutation<{ success: boolean; message: string }, string>({
+      query: (accountId) => ({
+        url: `social/accounts/${accountId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['ConnectedAccounts'],
+    }),
+
+    // Refresh a social account token
+    refreshAccountToken: builder.mutation<{ success: boolean; message: string }, string>({
+      query: (accountId) => ({
+        url: `social/accounts/${accountId}/refresh`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['ConnectedAccounts'],
+    }),
   }),
 });
 
@@ -138,4 +183,7 @@ export const {
   useFetchAvailablePlatformsQuery,
   useGenerateSharingUrlsQuery,
   useLazyGenerateSharingUrlsQuery,
+  useGetConnectedAccountsQuery,
+  useDisconnectAccountMutation,
+  useRefreshAccountTokenMutation,
 } = socialAccountsApiSlice;

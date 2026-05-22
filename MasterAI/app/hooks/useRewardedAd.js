@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Platform } from 'react-native';
 import { RewardedAd, RewardedAdEventType, TestIds } from 'react-native-google-mobile-ads';
@@ -44,6 +44,9 @@ const useRewardedAd = () => {
   const [rewardedAd, setRewardedAd] = useState(null);
   const [adLoaded, setAdLoaded] = useState(false);
   const [adError, setAdError] = useState(null);
+  // Refs so the polling loop in watchAd reads fresh values (avoids stale closure)
+  const adLoadedRef = useRef(false);
+  const adErrorRef = useRef(null);
 
   // Get ad unit ID based on platform
   const getAdUnitId = useCallback((adType = 'rewarded') => {
@@ -62,6 +65,8 @@ const useRewardedAd = () => {
 
       // Set up event listeners
       const unsubscribeLoaded = ad.addAdEventListener(RewardedAdEventType.LOADED, () => {
+        adLoadedRef.current = true;
+        adErrorRef.current = null;
         setAdLoaded(true);
         setAdError(null);
       });
@@ -69,6 +74,8 @@ const useRewardedAd = () => {
       const unsubscribeFailedToLoad = ad.addAdEventListener(
         RewardedAdEventType.FAILED_TO_LOAD_EVENT,
         (error) => {
+          adLoadedRef.current = false;
+          adErrorRef.current = error;
           setAdLoaded(false);
           setAdError(error);
           console.error('Ad failed to load:', error);
@@ -112,12 +119,13 @@ const useRewardedAd = () => {
   // Clean up ad
   const cleanupAd = useCallback(() => {
     if (rewardedAd) {
-      // Unsubscribe from events
       if (rewardedAd._unsubscribeFunctions) {
         rewardedAd._unsubscribeFunctions.forEach(unsubscribe => unsubscribe());
       }
       setRewardedAd(null);
     }
+    adLoadedRef.current = false;
+    adErrorRef.current = null;
     setAdLoaded(false);
     setAdError(null);
   }, [rewardedAd]);
@@ -218,26 +226,26 @@ const useRewardedAd = () => {
       dispatch(updateAdSessionStatus({ sessionId, status: 'loading' }));
       const ad = await initializeAd(adType);
 
-      // Wait for ad to load with timeout
-      const loadTimeout = 10000; // 10 seconds
+      // Wait for ad to load with timeout — use refs to avoid stale closure
+      const loadTimeout = 15000;
       const loadStartTime = Date.now();
 
-      while (!adLoaded && !adError && (Date.now() - loadStartTime) < loadTimeout) {
+      while (!adLoadedRef.current && !adErrorRef.current && (Date.now() - loadStartTime) < loadTimeout) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
 
-      if (adError) {
+      if (adErrorRef.current) {
         await failAdSessionApi({
           sessionId,
           errorCode: 'AD_LOAD_FAILED',
-          errorMessage: adError.message || 'Failed to load ad',
+          errorMessage: adErrorRef.current?.message || 'Failed to load ad',
         });
 
         dispatch(failAdSession({
           sessionId,
           error: {
             code: 'AD_LOAD_FAILED',
-            message: adError.message || 'Failed to load ad',
+            message: adErrorRef.current?.message || 'Failed to load ad',
           },
         }));
 
@@ -247,7 +255,7 @@ const useRewardedAd = () => {
         };
       }
 
-      if (!adLoaded) {
+      if (!adLoadedRef.current) {
         await failAdSessionApi({
           sessionId,
           errorCode: 'AD_LOAD_TIMEOUT',

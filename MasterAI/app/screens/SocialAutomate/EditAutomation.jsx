@@ -82,6 +82,7 @@ const EditAutomation = () => {
     { id: 'japanese', label: 'Japanese', flag: '🇯🇵' },
     { id: 'korean', label: 'Korean', flag: '🇰🇷' },
     { id: 'hindi', label: 'Hindi', flag: '🇮🇳' },
+    { id: 'bengali', label: 'Bengali', flag: '🇧🇩' },
     { id: 'arabic', label: 'Arabic', flag: '🇸🇦' },
   ];
 

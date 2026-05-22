@@ -4,7 +4,6 @@ import {
   ScrollView,
   View,
   Alert,
-  Platform,
   TouchableOpacity,
 } from 'react-native';
 import { Card, Text, Divider, useTheme, IconButton } from 'react-native-paper';
@@ -14,12 +13,7 @@ import * as Print from 'expo-print';
 import { shareAsync } from 'expo-sharing';
 import * as Clipboard from 'expo-clipboard';
 import { useRoute } from '@react-navigation/native';
-import {
-  BannerAdSize,
-  TestIds,
-  useInterstitialAd,
-} from 'react-native-google-mobile-ads';
-import BanneerAdd from '../Ads/BanneerAdd';
+import AdBanner from '../../Components/ads/AdBanner';
 
 const QuestionAnswerList = () => {
   const theme = useTheme();
@@ -122,34 +116,6 @@ const QuestionAnswerList = () => {
     Alert.alert('Copied', 'All answers have been copied to the clipboard.');
   };
 
-  const {
-    load,
-    show,
-    error,
-    isLoaded,
-    isClicked,
-    isClosed,
-    isOpened,
-    revenue,
-  } = useInterstitialAd('ca-app-pub-4304822949261068/9793325693');
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  useEffect(() => {
-    if (isLoaded) {
-      console.log(`${Platform.OS} interstitial ad loaded`);
-      show();
-    }
-  }, [isLoaded]);
-
-  useEffect(() => {
-    if (error !== undefined) {
-      console.log(`${Platform.OS} interstitial hook error: ${error.message}`);
-    }
-  }, [error]);
-
   return (
     <>
       <Header isBack={true} title={'Answer list'} />
@@ -201,6 +167,7 @@ const QuestionAnswerList = () => {
               </LinearGradient>
             </Card>
           ))}
+          <AdBanner />
         </ScrollView>
       </LinearGradient>
     </>

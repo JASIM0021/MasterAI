@@ -10,6 +10,7 @@ import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnable
 import com.facebook.react.defaults.DefaultReactActivityDelegate
 
 import expo.modules.ReactActivityDelegateWrapper
+import androidx.core.view.WindowCompat
 
 class MainActivity : ReactActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -21,6 +22,10 @@ class MainActivity : ReactActivity() {
     SplashScreenManager.registerOnActivity(this)
     // @generated end expo-splashscreen
     super.onCreate(null)
+    // Must be called after super.onCreate so the window exists.
+    // Doing this before React Native loads ensures react-native-safe-area-context
+    // measures the correct bottom inset (nav bar height) on first render.
+    WindowCompat.setDecorFitsSystemWindows(window, false)
   }
 
   /**

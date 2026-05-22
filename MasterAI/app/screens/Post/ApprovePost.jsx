@@ -5,6 +5,7 @@ import {
   ScrollView,
   Image,
   Dimensions,
+  Share,
   Alert,
 } from 'react-native';
 import {
@@ -19,7 +20,8 @@ import {
 import { useRoute, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Header from '../../Components/header/Header';
-import SocialSharingModal from '../../Components/social/SocialSharingModal';
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from '../../features/auth/authSlice';
 import {
   useFetchPostQuery,
   useApprovePostMutation,
@@ -31,187 +33,84 @@ const ApprovePost = () => {
   const theme = useTheme();
   const navigation = useNavigation();
   const route = useRoute();
+  const currentUser = useSelector(selectCurrentUser);
 
-  // Get postId from route params
   const { postId, post: routePost } = route.params || {};
 
-  // Component state
-  const [showSharingModal, setShowSharingModal] = useState(false);
-  const [approvedPost, setApprovedPost] = useState(null);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
 
-  // RTK Query hooks
   const {
     data: postData,
     isLoading: postLoading,
     isError: postError,
-    refetch: refetchPost
-  } = useFetchPostQuery(
-    postId,
-    { skip: !postId || !!routePost } // Skip if we have post from route
-  );
+    refetch: refetchPost,
+  } = useFetchPostQuery(postId, { skip: !postId || !!routePost });
 
   const [approvePost, { isLoading: approvingPost }] = useApprovePostMutation();
 
-  // Use post from route or from query
   const post = routePost || postData?.post;
 
-  const handleApprovePost = async () => {
+  const buildShareText = () => {
+    if (!post) return '';
+    const tags = post.content?.hashtags?.length
+      ? '\n\n' + post.content.hashtags.map(t => `#${t}`).join(' ')
+      : '';
+    return (post.content?.text || '') + tags;
+  };
+
+  const handleApproveAndShare = async () => {
     if (!post) return;
-
+    const resolvedId = (post._id || post.id)?.toString();
+    if (!resolvedId || resolvedId === 'undefined') {
+      Alert.alert('Error', 'Cannot approve post: missing post ID');
+      return;
+    }
     try {
-      const response = await approvePost(post.id).unwrap();
+      await approvePost({
+        postId: resolvedId,
+        userId: (currentUser?._id || currentUser?.id)?.toString(),
+        action: 'approve',
+      }).unwrap();
 
-      if (response.sharingData) {
-        // Show social sharing modal with the approved post
-        setApprovedPost({
-          ...post,
-          ...response.post,
-          sharingData: response.sharingData
-        });
-        setShowSharingModal(true);
-      } else {
-        // Just show success message if no sharing data
-        setSnackbarMessage('Post approved successfully!');
+      const shareText = buildShareText();
+      const shareOptions = {
+        message: shareText,
+        ...(post.media?.[0]?.url ? { url: post.media[0].url } : {}),
+      };
+
+      const result = await Share.share(shareOptions);
+      if (result.action === Share.sharedAction) {
+        setSnackbarMessage('Post shared successfully!');
         setSnackbarVisible(true);
-
-        // Navigate back after short delay
-        setTimeout(() => {
-          navigation.goBack();
-        }, 1500);
+        setTimeout(() => navigation.goBack(), 1500);
       }
     } catch (error) {
-      console.error('Failed to approve post:', error);
-      setSnackbarMessage('Failed to approve post. Please try again.');
-      setSnackbarVisible(true);
+      if (error?.message !== 'User did not share') {
+        console.error('Failed to approve/share post:', error);
+        setSnackbarMessage('Failed to approve post. Please try again.');
+        setSnackbarVisible(true);
+      }
     }
   };
 
-  const handleSharingComplete = () => {
-    setShowSharingModal(false);
-    setApprovedPost(null);
-    setSnackbarMessage('Post shared successfully!');
-    setSnackbarVisible(true);
-
-    // Navigate back to pending posts or dashboard
-    setTimeout(() => {
-      navigation.navigate('PendingPosts');
-    }, 1500);
-  };
-
-  const handleSharingCancel = () => {
-    setShowSharingModal(false);
-    setApprovedPost(null);
-
-    // Still navigate back since post was approved
-    setTimeout(() => {
-      navigation.goBack();
-    }, 1000);
-  };
-
-  const renderMediaPreview = () => {
-    if (!post.media || post.media.length === 0) return null;
-
-    const mainMedia = post.media[0];
-
-    return (
-      <Card style={styles.mediaCard}>
-        <Card.Content style={styles.mediaCardContent}>
-          <Text style={styles.sectionTitle}>Media Content</Text>
-          <View style={styles.mediaContainer}>
-            <Image
-              source={{ uri: mainMedia.url }}
-              style={styles.mediaImage}
-              resizeMode="cover"
-            />
-            {post.media.length > 1 && (
-              <View style={styles.mediaGrid}>
-                {post.media.slice(1, 4).map((media, index) => (
-                  <Image
-                    key={index}
-                    source={{ uri: media.url }}
-                    style={styles.additionalMedia}
-                    resizeMode="cover"
-                  />
-                ))}
-                {post.media.length > 4 && (
-                  <View style={styles.moreMediaOverlay}>
-                    <Text style={styles.moreMediaText}>+{post.media.length - 4}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-          </View>
-        </Card.Content>
-      </Card>
-    );
-  };
-
-  const renderPlatformPreview = (platform) => {
-    const platformIcons = {
-      facebook: 'facebook',
-      instagram: 'instagram',
-      twitter: 'twitter',
-      linkedin: 'linkedin',
-    };
-
-    const platformColors = {
-      facebook: '#1877F2',
-      instagram: '#E4405F',
-      twitter: '#1DA1F2',
-      linkedin: '#0A66C2',
-    };
-
-    return (
-      <Card key={platform.platform} style={[styles.platformPreview, { borderLeftColor: platformColors[platform.platform] }]}>
-        <Card.Content style={styles.platformContent}>
-          <View style={styles.platformHeader}>
-            <Icon
-              name={platformIcons[platform.platform]}
-              size={24}
-              color={platformColors[platform.platform]}
-            />
-            <View style={styles.platformInfo}>
-              <Text style={styles.platformName}>{platform.accountName}</Text>
-              <Text style={styles.platformStatus}>{platform.status}</Text>
-            </View>
-          </View>
-
-          <Text style={styles.platformContentText} numberOfLines={3}>
-            {post.content.text}
-          </Text>
-
-          {post.content.hashtags && post.content.hashtags.length > 0 && (
-            <View style={styles.hashtagPreview}>
-              {post.content.hashtags.slice(0, 3).map((tag, index) => (
-                <Chip
-                  key={index}
-                  mode="outlined"
-                  compact
-                  textStyle={styles.chipText}
-                  style={styles.hashtagChip}
-                >
-                  #{tag}
-                </Chip>
-              ))}
-              {post.content.hashtags.length > 3 && (
-                <Text style={styles.moreHashtags}>+{post.content.hashtags.length - 3} more</Text>
-              )}
-            </View>
-          )}
-        </Card.Content>
-      </Card>
-    );
+  const handleShareOnly = async () => {
+    try {
+      const shareText = buildShareText();
+      await Share.share({
+        message: shareText,
+        ...(post?.media?.[0]?.url ? { url: post.media[0].url } : {}),
+      });
+    } catch {}
   };
 
   if (postLoading) {
     return (
       <View style={styles.container}>
-        <Header isBack={true} title="Approve Post" />
-        <View style={styles.loadingContainer}>
+        <Header isBack title="Review Post" />
+        <View style={styles.centered}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.loadingText}>Loading post details...</Text>
+          <Text style={styles.loadingText}>Loading post...</Text>
         </View>
       </View>
     );
@@ -220,13 +119,11 @@ const ApprovePost = () => {
   if (postError || !post) {
     return (
       <View style={styles.container}>
-        <Header isBack={true} title="Approve Post" />
-        <View style={styles.errorContainer}>
+        <Header isBack title="Review Post" />
+        <View style={styles.centered}>
           <Icon name="alert-circle" size={48} color="#e74c3c" />
-          <Text style={styles.errorText}>Failed to load post details</Text>
-          <Button mode="contained" onPress={() => refetchPost()}>
-            Retry
-          </Button>
+          <Text style={styles.errorText}>Failed to load post</Text>
+          <Button mode="contained" onPress={() => refetchPost()}>Retry</Button>
         </View>
       </View>
     );
@@ -234,121 +131,105 @@ const ApprovePost = () => {
 
   return (
     <View style={styles.container}>
-      <Header isBack={true} title="Approve Post" />
+      <Header isBack title="Review Post" />
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Post Status */}
-        <Card style={styles.statusCard}>
-          <Card.Content style={styles.statusContent}>
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Status */}
+        <Card style={styles.card}>
+          <Card.Content style={styles.statusRow}>
             <View style={styles.statusBadge}>
-              <Icon name="clock" size={16} color="#f39c12" />
+              <Icon name="clock" size={14} color="#f39c12" />
               <Text style={styles.statusText}>PENDING APPROVAL</Text>
             </View>
-            <Text style={styles.createdDate}>
-              Created {new Date(post.createdAt).toLocaleDateString()} at{' '}
-              {new Date(post.createdAt).toLocaleTimeString()}
+            <Text style={styles.dateText}>
+              {new Date(post.createdAt).toLocaleString()}
             </Text>
           </Card.Content>
         </Card>
 
-        {/* Post Content */}
-        <Card style={styles.contentCard}>
-          <Card.Content style={styles.contentCardContent}>
-            <Text style={styles.sectionTitle}>Post Content</Text>
-            <Text style={styles.postText}>{post.content.text}</Text>
+        {/* Content */}
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text style={styles.sectionTitle}>Generated Content</Text>
+            <Text style={styles.postText}>{post.content?.text}</Text>
 
-            {post.content.hashtags && post.content.hashtags.length > 0 && (
-              <View style={styles.hashtagContainer}>
-                <Text style={styles.hashtagLabel}>Hashtags:</Text>
-                <View style={styles.hashtagsList}>
-                  {post.content.hashtags.map((tag, index) => (
-                    <Chip
-                      key={index}
-                      mode="outlined"
-                      compact
-                      textStyle={styles.chipText}
-                      style={styles.hashtagChip}
-                    >
-                      #{tag}
-                    </Chip>
-                  ))}
-                </View>
+            {post.content?.hashtags?.length > 0 && (
+              <View style={styles.hashtagRow}>
+                {post.content.hashtags.map((tag, i) => (
+                  <Chip key={i} mode="outlined" compact textStyle={styles.chipText} style={styles.chip}>
+                    #{tag}
+                  </Chip>
+                ))}
               </View>
             )}
           </Card.Content>
         </Card>
 
-        {/* Media Preview */}
-        {renderMediaPreview()}
-
-        {/* Platform Previews */}
-        <View style={styles.platformSection}>
-          <Text style={styles.sectionTitle}>Platform Previews</Text>
-          <Text style={styles.sectionSubtitle}>
-            Here's how your post will appear on each platform:
-          </Text>
-
-          {post.targetPlatforms.map((platform) => renderPlatformPreview(platform))}
-        </View>
-
-        {/* Scheduling Info */}
-        {post.scheduling && post.scheduling.type !== 'immediate' && (
-          <Card style={styles.schedulingCard}>
-            <Card.Content style={styles.schedulingContent}>
-              <Text style={styles.sectionTitle}>Scheduling Details</Text>
-              <View style={styles.schedulingInfo}>
-                <Icon name="calendar-clock" size={20} color={theme.colors.primary} />
-                <View style={styles.schedulingText}>
-                  <Text style={styles.schedulingType}>
-                    Type: {post.scheduling.type.charAt(0).toUpperCase() + post.scheduling.type.slice(1)}
-                  </Text>
-                  {post.scheduling.scheduledAt && (
-                    <Text style={styles.schedulingDate}>
-                      Scheduled for: {new Date(post.scheduling.scheduledAt).toLocaleString()}
-                    </Text>
-                  )}
+        {/* Media */}
+        {post.media?.length > 0 && (
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text style={styles.sectionTitle}>Media</Text>
+              <Image
+                source={{ uri: post.media[0].url }}
+                style={styles.mediaImage}
+                resizeMode="cover"
+              />
+              {post.media.length > 1 && (
+                <View style={styles.mediaRow}>
+                  {post.media.slice(1, 4).map((m, i) => (
+                    <Image key={i} source={{ uri: m.url }} style={styles.thumbImage} resizeMode="cover" />
+                  ))}
                 </View>
-              </View>
+              )}
             </Card.Content>
           </Card>
         )}
+
+        {/* Instructions */}
+        <Card style={[styles.card, styles.infoCard]}>
+          <Card.Content style={styles.infoRow}>
+            <Icon name="information" size={22} color="#6c47ff" />
+            <Text style={styles.infoText}>
+              Tap <Text style={{ fontWeight: '700' }}>Approve & Share</Text> to mark this post as approved and open your device's share sheet to post it to any platform.
+            </Text>
+          </Card.Content>
+        </Card>
       </ScrollView>
 
-      {/* Action Buttons */}
-      <View style={styles.actionContainer}>
+      {/* Actions */}
+      <View style={styles.actions}>
         <Button
           mode="outlined"
           onPress={() => navigation.goBack()}
-          style={styles.cancelButton}
+          style={styles.cancelBtn}
           disabled={approvingPost}
         >
           Back
         </Button>
 
         <Button
-          mode="contained"
-          onPress={handleApprovePost}
+          mode="outlined"
+          onPress={handleShareOnly}
+          style={styles.shareBtn}
+          icon="share-variant"
           disabled={approvingPost}
-          style={styles.approveButton}
-          icon={approvingPost ? undefined : "check"}
+        >
+          Share Only
+        </Button>
+
+        <Button
+          mode="contained"
+          onPress={handleApproveAndShare}
+          disabled={approvingPost}
+          style={styles.approveBtn}
+          icon={approvingPost ? undefined : 'check'}
           loading={approvingPost}
         >
           {approvingPost ? 'Approving...' : 'Approve & Share'}
         </Button>
       </View>
 
-      {/* Social Sharing Modal */}
-      {approvedPost && (
-        <SocialSharingModal
-          visible={showSharingModal}
-          post={approvedPost}
-          sharingData={approvedPost?.sharingData}
-          onComplete={handleSharingComplete}
-          onCancel={handleSharingCancel}
-        />
-      )}
-
-      {/* Snackbar */}
       <Snackbar
         visible={snackbarVisible}
         onDismiss={() => setSnackbarVisible(false)}
@@ -361,232 +242,48 @@ const ApprovePost = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f7fa',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorText: {
-    fontSize: 18,
-    color: '#666',
-    marginVertical: 16,
-    textAlign: 'center',
-  },
-  scrollView: {
-    flex: 1,
-    padding: 16,
-  },
-  statusCard: {
-    marginBottom: 16,
-    borderRadius: 12,
-  },
-  statusContent: {
-    paddingVertical: 12,
-  },
+  container: { flex: 1, backgroundColor: '#f5f7fa' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  loadingText: { marginTop: 16, fontSize: 16, color: '#666' },
+  errorText: { fontSize: 18, color: '#666', marginVertical: 16, textAlign: 'center' },
+  scroll: { flex: 1, padding: 16 },
+  card: { marginBottom: 14, borderRadius: 12 },
+
+  // Status
+  statusRow: { paddingVertical: 10 },
   statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff3cd',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    alignSelf: 'flex-start',
-    marginBottom: 8,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#fff3cd', paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 14, alignSelf: 'flex-start', marginBottom: 6,
   },
-  statusText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#f39c12',
-    marginLeft: 6,
+  statusText: { fontSize: 11, fontWeight: 'bold', color: '#f39c12', marginLeft: 5 },
+  dateText: { fontSize: 13, color: '#888' },
+
+  // Content
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#2c3e50', marginBottom: 10 },
+  postText: { fontSize: 15, lineHeight: 23, color: '#2c3e50', marginBottom: 12 },
+  hashtagRow: { flexDirection: 'row', flexWrap: 'wrap' },
+  chip: { marginRight: 6, marginBottom: 6 },
+  chipText: { fontSize: 11 },
+
+  // Media
+  mediaImage: { width: '100%', height: width * 0.55, borderRadius: 10 },
+  mediaRow: { flexDirection: 'row', marginTop: 8, gap: 8 },
+  thumbImage: { flex: 1, height: 80, borderRadius: 8 },
+
+  // Info
+  infoCard: { backgroundColor: '#f0eeff' },
+  infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  infoText: { flex: 1, fontSize: 13, color: '#555', lineHeight: 20 },
+
+  // Actions
+  actions: {
+    flexDirection: 'row', padding: 12, paddingTop: 8,
+    backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e0e6ed', gap: 8,
   },
-  createdDate: {
-    fontSize: 14,
-    color: '#666',
-  },
-  contentCard: {
-    marginBottom: 16,
-    borderRadius: 12,
-  },
-  contentCardContent: {
-    paddingVertical: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 12,
-  },
-  sectionSubtitle: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 16,
-    lineHeight: 20,
-  },
-  postText: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#2c3e50',
-    marginBottom: 16,
-  },
-  hashtagContainer: {
-    marginTop: 8,
-  },
-  hashtagLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-    marginBottom: 8,
-  },
-  hashtagsList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  hashtagChip: {
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  chipText: {
-    fontSize: 12,
-  },
-  mediaCard: {
-    marginBottom: 16,
-    borderRadius: 12,
-  },
-  mediaCardContent: {
-    paddingVertical: 16,
-  },
-  mediaContainer: {
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  mediaImage: {
-    width: '100%',
-    height: width * 0.6,
-  },
-  mediaGrid: {
-    flexDirection: 'row',
-    marginTop: 8,
-  },
-  additionalMedia: {
-    width: (width - 80) / 3,
-    height: 80,
-    marginRight: 8,
-    borderRadius: 8,
-  },
-  moreMediaOverlay: {
-    width: (width - 80) / 3,
-    height: 80,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 8,
-  },
-  moreMediaText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  platformSection: {
-    marginBottom: 16,
-  },
-  platformPreview: {
-    marginBottom: 12,
-    borderRadius: 12,
-    borderLeftWidth: 4,
-  },
-  platformContent: {
-    paddingVertical: 12,
-  },
-  platformHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  platformInfo: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  platformName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-  },
-  platformStatus: {
-    fontSize: 12,
-    color: '#666',
-    textTransform: 'capitalize',
-  },
-  platformContentText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#2c3e50',
-    marginBottom: 8,
-  },
-  hashtagPreview: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-  },
-  moreHashtags: {
-    fontSize: 12,
-    color: '#666',
-    fontStyle: 'italic',
-  },
-  schedulingCard: {
-    marginBottom: 16,
-    borderRadius: 12,
-  },
-  schedulingContent: {
-    paddingVertical: 12,
-  },
-  schedulingInfo: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  schedulingText: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  schedulingType: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#2c3e50',
-    marginBottom: 4,
-  },
-  schedulingDate: {
-    fontSize: 14,
-    color: '#666',
-  },
-  actionContainer: {
-    flexDirection: 'row',
-    padding: 16,
-    paddingTop: 8,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#e0e6ed',
-    gap: 12,
-  },
-  cancelButton: {
-    flex: 1,
-  },
-  approveButton: {
-    flex: 2,
-  },
+  cancelBtn: { flex: 1 },
+  shareBtn: { flex: 1.2 },
+  approveBtn: { flex: 1.8 },
 });
 
 export default ApprovePost;

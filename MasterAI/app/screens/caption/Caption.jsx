@@ -30,11 +30,8 @@ import {
 } from '../../features/api/upload/uploadPhoto';
 import useNavigationHelper from '../helper/NavigationHelper';
 import { SCREEN_NAME } from '../../Constant';
-import BanneerAdd from '../Ads/BanneerAdd';
-import {
-  BannerAdSize,
-  useInterstitialAd,
-} from 'react-native-google-mobile-ads';
+import AdBanner from '../../Components/ads/AdBanner';
+import useInterstitialAd from '../../hooks/useInterstitialAd';
 import Loader from '../../Components/loader/Loader';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -47,6 +44,7 @@ const CreateCaption = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const theme = useTheme();
   const navigation = useNavigationHelper();
+  const { showAd } = useInterstitialAd();
 
   const [uploadPhotoApi, { isLoading, isSuccess, isError, data }] =
     useGenerateCaptionMutation();
@@ -174,6 +172,7 @@ const CreateCaption = () => {
 
       try {
         await uploadPhotoApi(formData).unwrap();
+        await showAd();
       } catch (error) {
         console.error('Upload failed:', error);
       }
@@ -378,7 +377,7 @@ const CreateCaption = () => {
         </Portal>
         <Loader isAnalyzing={isLoading} />
 
-        <BanneerAdd.BannerTest bannerAdSize={BannerAdSize.FULL_BANNER} />
+        <AdBanner />
       </LinearGradient>
     </SafeAreaView>
   );

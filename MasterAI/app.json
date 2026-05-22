@@ -17,7 +17,7 @@
       }
     },
     "plugins": [
-
+      "./plugins/withAndroidReleaseKey",
 
       ["react-native-google-mobile-ads",
       {
@@ -253,7 +253,7 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "scheme": [],
+    "scheme": "masterai",
     "extra": {
       "eas": {
         "projectId": "66ea4d06-8687-45c8-ba85-5c448e985e56"

@@ -2,6 +2,7 @@ const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
+const { TwitterApi } = require('twitter-api-v2');
 
 class SocialMediaPublishingService {
   constructor() {
@@ -251,51 +252,49 @@ class SocialMediaPublishingService {
   }
 
   /**
-   * Publish to Twitter
+   * Publish to Twitter using twitter-api-v2
    * @param {Object} post - Post object
-   * @param {Object} platform - Platform configuration
+   * @param {Object} platform - Platform configuration with account.getDecryptedAccessToken() etc.
    * @param {Object} user - User object
    */
   async publishToTwitter(post, platform, user) {
     try {
-      const { accessToken, accessTokenSecret, consumerKey, consumerSecret } = platform.credentials;
+      // Support both credential object and direct SocialAccount model
+      let accessToken, accessSecret;
+      if (platform.credentials) {
+        accessToken = platform.credentials.accessToken;
+        accessSecret = platform.credentials.accessTokenSecret || platform.credentials.tokenSecret;
+      } else if (platform.account) {
+        accessToken = platform.account.getDecryptedAccessToken();
+        accessSecret = platform.account.platformData?.tokenSecret;
+      }
 
-      if (!accessToken || !accessTokenSecret || !consumerKey || !consumerSecret) {
+      if (!accessToken || !accessSecret) {
         throw new Error('Twitter OAuth credentials are required');
       }
 
+      const client = new TwitterApi({
+        appKey: process.env.TWITTER_CONSUMER_KEY,
+        appSecret: process.env.TWITTER_CONSUMER_SECRET,
+        accessToken,
+        accessSecret,
+      });
+
       const content = this.formatContentForPlatform(post.content, 'twitter');
+      const tweetPayload = { text: content.text };
 
-      // Prepare tweet data
-      const tweetData = {
-        text: content.text
-      };
-
-      // Upload media if present
+      // Upload media if present (up to 4 images)
       if (post.media && post.media.length > 0) {
-        const imageMedia = post.media.filter(m => m.type === 'image');
-
+        const imageMedia = post.media.filter(m => m.type === 'image').slice(0, 4);
         if (imageMedia.length > 0) {
-          const mediaIds = [];
-
-          for (const image of imageMedia.slice(0, 4)) { // Twitter allows max 4 images
-            const mediaId = await this.uploadMediaToTwitter(image.url, platform.credentials);
-            mediaIds.push(mediaId);
-          }
-
-          tweetData.media = {
-            media_ids: mediaIds
-          };
+          const mediaIds = await Promise.all(
+            imageMedia.map(img => client.v1.uploadMedia(img.url, { mimeType: 'image/jpeg' }))
+          );
+          tweetPayload.media = { media_ids: mediaIds };
         }
       }
 
-      // Use Twitter API v2
-      const response = await this.makeTwitterAPIRequest(
-        'POST',
-        'https://api.twitter.com/2/tweets',
-        tweetData,
-        platform.credentials
-      );
+      const response = await client.v2.tweet(tweetPayload);
 
       return {
         platformPostId: response.data.id,
@@ -304,20 +303,27 @@ class SocialMediaPublishingService {
         url: `https://twitter.com/i/status/${response.data.id}`
       };
     } catch (error) {
-      console.error('Twitter publishing error:', error.response?.data || error.message);
-      throw new Error(`Twitter publishing failed: ${error.response?.data?.detail || error.message}`);
+      console.error('Twitter publishing error:', error?.data || error.message);
+      throw new Error(`Twitter publishing failed: ${error?.data?.detail || error.message}`);
     }
   }
 
   /**
-   * Publish to LinkedIn
+   * Publish to LinkedIn using UGC Posts API
    * @param {Object} post - Post object
    * @param {Object} platform - Platform configuration
    * @param {Object} user - User object
    */
   async publishToLinkedIn(post, platform, user) {
     try {
-      const { accessToken, personId } = platform.credentials;
+      let accessToken, personId;
+      if (platform.credentials) {
+        accessToken = platform.credentials.accessToken;
+        personId = platform.credentials.personId;
+      } else if (platform.account) {
+        accessToken = platform.account.getDecryptedAccessToken();
+        personId = platform.account.platformUserId || platform.account.accountId;
+      }
 
       if (!accessToken || !personId) {
         throw new Error('LinkedIn access token and person ID are required');
@@ -450,46 +456,51 @@ class SocialMediaPublishingService {
   }
 
   /**
-   * Upload media to Twitter
+   * Upload media to LinkedIn Assets API
    * @param {string} imageUrl - Image URL
-   * @param {Object} credentials - Twitter credentials
-   */
-  async uploadMediaToTwitter(imageUrl, credentials) {
-    // This is a simplified version - in production you'd need proper OAuth1 implementation
-    // For now, return a mock media ID
-    console.log('Mock: Uploading media to Twitter:', imageUrl);
-    return 'mock_media_id_' + Date.now();
-  }
-
-  /**
-   * Upload media to LinkedIn
-   * @param {string} imageUrl - Image URL
-   * @param {Object} credentials - LinkedIn credentials
+   * @param {Object} credentials - LinkedIn credentials { accessToken, personId }
    */
   async uploadMediaToLinkedIn(imageUrl, credentials) {
-    // This is a simplified version - in production you'd need proper LinkedIn media upload
-    // For now, return a mock asset
-    console.log('Mock: Uploading media to LinkedIn:', imageUrl);
-    return 'urn:li:digitalmediaAsset:mock_asset_' + Date.now();
-  }
+    const accessToken = credentials.accessToken;
+    const personId = credentials.personId;
 
-  /**
-   * Make authenticated Twitter API request
-   * @param {string} method - HTTP method
-   * @param {string} url - API URL
-   * @param {Object} data - Request data
-   * @param {Object} credentials - Twitter credentials
-   */
-  async makeTwitterAPIRequest(method, url, data, credentials) {
-    // This is a simplified version - in production you'd need proper OAuth1 implementation
-    // For now, return a mock response
-    console.log('Mock: Making Twitter API request:', method, url, data);
-    return {
-      data: {
-        id: 'mock_tweet_id_' + Date.now(),
-        text: data.text
+    // Step 1: Register upload
+    const registerResponse = await axios.post(
+      'https://api.linkedin.com/v2/assets?action=registerUpload',
+      {
+        registerUploadRequest: {
+          recipes: ['urn:li:digitalmediaRecipe:feedshare-image'],
+          owner: `urn:li:person:${personId}`,
+          serviceRelationships: [{
+            relationshipType: 'OWNER',
+            identifier: 'urn:li:userGeneratedContent'
+          }]
+        }
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'X-Restli-Protocol-Version': '2.0.0'
+        }
       }
-    };
+    );
+
+    const uploadUrl = registerResponse.data.value.uploadMechanism[
+      'com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest'
+    ].uploadUrl;
+    const assetUrn = registerResponse.data.value.asset;
+
+    // Step 2: Download and upload the image binary
+    const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+    await axios.put(uploadUrl, imageResponse.data, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'image/jpeg'
+      }
+    });
+
+    return assetUrn;
   }
 
   /**

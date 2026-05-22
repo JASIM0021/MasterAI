@@ -189,9 +189,8 @@ const handlePrompt = (type, body) => {
     };
   } else if (type == Type.POST) {
     return {
-      prompt: `Create 5+  detailed posts (at least 500 characters each) based on the uploaded photo. in ${
-        body?.language ? body?.language : 'English'
-      } for my ${body?.platform} account  . hastag alwase in english`,
+      prompt: `Create 5+  detailed posts (at least 500 characters each) based on the uploaded photo. in ${body?.language ? body?.language : 'English'
+        } for my ${body?.platform} account  . hastag alwase in english`,
       generationConfig: {
         type: 'object',
         properties: {
@@ -255,9 +254,8 @@ Your analysis should include:
 3. Any notable body language or facial expressions
 4. Contextual factors in the image that might influence their mood
 
-Remember to express the analysis in ${
-        body?.language ? body?.language : 'English'
-      }.
+Remember to express the analysis in ${body?.language ? body?.language : 'English'
+        }.
 
 Important: Always provide a feeling analysis, avoiding phrases like "it's not possible to determine". Use your best judgment based on the available information.
 `,
@@ -472,11 +470,9 @@ Important: Always provide a complete and accurate solution. Double-check all cal
     };
   } else if (type == Type.STORY) {
     return {
-      prompt: `craft a story Topic :- ${
-        body?.topic ? body?.topic : 'random'
-      } use emojies for itractive in ${
-        body?.language ? body.language : 'English'
-      } language`,
+      prompt: `craft a story Topic :- ${body?.topic ? body?.topic : 'random'
+        } use emojies for itractive in ${body?.language ? body.language : 'English'
+        } language`,
       generationConfig: storyresponse,
     };
   } else if (type == Type.getCoding) {

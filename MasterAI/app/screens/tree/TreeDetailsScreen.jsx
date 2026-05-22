@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   StyleSheet,
   ScrollView,
   Image,
-  Platform,
   TouchableOpacity,
 } from 'react-native';
 import {
@@ -19,9 +18,8 @@ import {
 } from 'react-native-paper';
 import Header from '../../Components/header/Header';
 import ViewShot from 'react-native-view-shot';
-import { useInterstitialAd } from 'react-native-google-mobile-ads';
 import Share from 'react-native-share';
-import BanneerAdd from '../Ads/BanneerAdd';
+import AdBanner from '../../Components/ads/AdBanner';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import apiconstant from '../../Constant/apiconstant';
@@ -43,27 +41,6 @@ const TreeDetailsScreen = ({ route }) => {
     Poppins_400Regular,
     Poppins_600SemiBold,
   });
-
-  const {
-    load,
-    show,
-    error,
-    isLoaded,
-    isClicked,
-    isClosed,
-    isOpened,
-    revenue,
-  } = useInterstitialAd('ca-app-pub-4304822949261068/9793325693');
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  useEffect(() => {
-    if (isLoaded) {
-      console.log(`${Platform.OS} interstitial ad loaded`);
-      show();
-    }
-  }, [isLoaded]);
 
   const treeData = data?.data[0]; // Assuming the first item in the array is the tree data
 
@@ -293,7 +270,7 @@ const TreeDetailsScreen = ({ route }) => {
           </ViewShot>
         </View>
       </ScrollView>
-      <BanneerAdd.BannerTest />
+      <AdBanner />
     </LinearGradient>
   );
 };
