@@ -39,6 +39,10 @@ import {
   LazyMyVideosScreen,
   LazyVideoFavoritesScreen,
   LazyAuthScreen,
+  LazySmartToolsHub,
+  LazyImageToPdf,
+  LazyPhotoResizer,
+  LazyQrScanner,
   // Add other lazy components as needed
 } from './lazyComponents';
 
@@ -83,7 +87,11 @@ export const SCREEN_COMPONENT = {
   TemplateSelection: LazyTemplateSelectionScreen,
   MyVideos: LazyMyVideosScreen,
   VideoFavorites: LazyVideoFavoritesScreen,
-  AuthScreen: LazyAuthScreen
+  AuthScreen: LazyAuthScreen,
+  SmartTools: LazySmartToolsHub,
+  ImageToPdf: LazyImageToPdf,
+  PhotoResizer: LazyPhotoResizer,
+  QrScanner: LazyQrScanner
 };
 
 if (__DEV__) {

@@ -61,6 +61,12 @@ const MyVideosScreen = React.lazy(() => import('../screens/VideoGeneration/MyVid
 const VideoFavoritesScreen = React.lazy(() => import('../screens/VideoGeneration/VideoFavoritesScreen'));
 const AuthScreen = React.lazy(() => import('../screens/Auth/AuthScreen'));
 
+// Free on-device utility tools
+const SmartToolsHub = React.lazy(() => import('../screens/SmartTools/SmartToolsHub'));
+const ImageToPdf = React.lazy(() => import('../screens/SmartTools/ImageToPdf'));
+const PhotoResizer = React.lazy(() => import('../screens/SmartTools/PhotoResizer'));
+const QrScanner = React.lazy(() => import('../screens/SmartTools/QrScanner'));
+
 // Wrapped components with Suspense - only for screens that exist
 export const LazyAdTestScreen = withLazyLoading(AdTestScreen, 'Ad Test');
 export const LazyAgeAnalizer = withLazyLoading(AgeAnalizer, 'Age Analyzer');
@@ -102,6 +108,10 @@ export const LazyTemplateSelectionScreen = withLazyLoading(TemplateSelectionScre
 export const LazyMyVideosScreen = withLazyLoading(MyVideosScreen, 'My Videos');
 export const LazyVideoFavoritesScreen = withLazyLoading(VideoFavoritesScreen, 'Video Favorites');
 export const LazyAuthScreen = withLazyLoading(AuthScreen, 'Authentication');
+export const LazySmartToolsHub = withLazyLoading(SmartToolsHub, 'Smart Tools');
+export const LazyImageToPdf = withLazyLoading(ImageToPdf, 'Image to PDF');
+export const LazyPhotoResizer = withLazyLoading(PhotoResizer, 'Photo Resizer');
+export const LazyQrScanner = withLazyLoading(QrScanner, 'QR Scanner');
 
 const styles = StyleSheet.create({
   loadingContainer: {

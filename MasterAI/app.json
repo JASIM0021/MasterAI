@@ -11,11 +11,6 @@
       "android",
       "web"
     ],
-    "update": {
-      "requestHeaders": {
-        "expo-channel-name": "masterai-prod"
-      }
-    },
     "plugins": [
       "./plugins/withAndroidReleaseKey",
 
@@ -85,7 +80,8 @@
         {
           "photosPermission": "Allow $(PRODUCT_NAME) to access your photos.",
           "savePhotosPermission": "Allow $(PRODUCT_NAME) to save photos.",
-          "isAccessMediaLocationEnabled": true
+          "isAccessMediaLocationEnabled": true,
+          "granularPermissions": []
         }
       ],
       "@react-native-firebase/app",
@@ -171,10 +167,10 @@
             "useFrameworks": "static"
           },
           "android": {
-            "compileSdkVersion": 35,
-            "targetSdkVersion": 35,
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
             "minSdkVersion": 24,
-            "buildToolsVersion": "35.0.0"
+            "buildToolsVersion": "36.0.0"
           }
         }
       ],
@@ -228,7 +224,7 @@
       }
     },
     "android": {
-      "versionCode": 35,
+      "versionCode": 58,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -261,7 +257,10 @@
     },
     "runtimeVersion": "5.0",
     "updates": {
-      "url": "https://u.expo.dev/66ea4d06-8687-45c8-ba85-5c448e985e56"
+      "url": "https://u.expo.dev/66ea4d06-8687-45c8-ba85-5c448e985e56",
+      "requestHeaders": {
+        "expo-channel-name": "masterai-prod"
+      }
     }
   }
 

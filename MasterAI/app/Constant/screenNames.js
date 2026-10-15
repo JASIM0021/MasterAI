@@ -40,7 +40,11 @@ export const SCREEN_NAME = {
   VideoCustomPrompt: 'VideoCustomPrompt',
   MyVideos: 'MyVideos',
   VideoFavorites: 'VideoFavorites',
-  AuthScreen: 'AuthScreen'
+  AuthScreen: 'AuthScreen',
+  SmartTools: 'SmartTools',
+  ImageToPdf: 'ImageToPdf',
+  PhotoResizer: 'PhotoResizer',
+  QrScanner: 'QrScanner'
 };
 
 export const appConstant = {

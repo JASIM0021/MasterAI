@@ -21,6 +21,30 @@ export const CATEGORIES = [
 
 export const ALL_TOOLS = navigation => [
   {
+    title: 'Smart Tools (Free)',
+    icon: 'build',
+    category: 'New',
+    onNavigate: title => {
+      navigation.navigate(SCREEN_NAME.SmartTools);
+    },
+  },
+  {
+    title: 'Image to PDF (Free)',
+    icon: 'picture-as-pdf',
+    category: 'Image',
+    onNavigate: title => {
+      navigation.navigate(SCREEN_NAME.ImageToPdf);
+    },
+  },
+  {
+    title: 'Photo Resizer to KB (Free)',
+    icon: 'photo-size-select-large',
+    category: 'Image',
+    onNavigate: title => {
+      navigation.navigate(SCREEN_NAME.PhotoResizer);
+    },
+  },
+  {
     title: 'Virtual Cloth Test',
     icon: 'tshirt-crew',
     category: 'New',

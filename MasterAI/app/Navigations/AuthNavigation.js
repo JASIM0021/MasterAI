@@ -149,6 +149,22 @@ const screen = [
   {
     name: SCREEN_NAME.MyVideos,
     component: SCREEN_COMPONENT.MyVideos
+  },
+  {
+    name: SCREEN_NAME.SmartTools,
+    component: SCREEN_COMPONENT.SmartTools
+  },
+  {
+    name: SCREEN_NAME.ImageToPdf,
+    component: SCREEN_COMPONENT.ImageToPdf
+  },
+  {
+    name: SCREEN_NAME.PhotoResizer,
+    component: SCREEN_COMPONENT.PhotoResizer
+  },
+  {
+    name: SCREEN_NAME.QrScanner,
+    component: SCREEN_COMPONENT.QrScanner
   }
 ];
 
